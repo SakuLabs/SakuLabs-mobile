@@ -27,9 +27,11 @@ class ApiClient {
   }
 
   Future<dynamic> get(String endpoint, {bool authenticated = true}) async {
-    final response = await _client.get(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers(authenticated: authenticated),
+    final response = await _send(
+      () => _client.get(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: _headers(authenticated: authenticated),
+      ),
     );
     return _decode(response);
   }
@@ -39,10 +41,12 @@ class ApiClient {
     Map<String, dynamic>? body,
     bool authenticated = true,
   }) async {
-    final response = await _client.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers(authenticated: authenticated),
-      body: body == null ? null : jsonEncode(body),
+    final response = await _send(
+      () => _client.post(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: _headers(authenticated: authenticated),
+        body: body == null ? null : jsonEncode(body),
+      ),
     );
     return _decode(response);
   }
@@ -52,23 +56,34 @@ class ApiClient {
     Map<String, dynamic>? body,
     bool authenticated = true,
   }) async {
-    final response = await _client.patch(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers(authenticated: authenticated),
-      body: body == null ? null : jsonEncode(body),
+    final response = await _send(
+      () => _client.patch(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: _headers(authenticated: authenticated),
+        body: body == null ? null : jsonEncode(body),
+      ),
     );
     return _decode(response);
   }
 
-  Future<dynamic> delete(
-    String endpoint, {
-    bool authenticated = true,
-  }) async {
-    final response = await _client.delete(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers(authenticated: authenticated),
+  Future<dynamic> delete(String endpoint, {bool authenticated = true}) async {
+    final response = await _send(
+      () => _client.delete(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: _headers(authenticated: authenticated),
+      ),
     );
     return _decode(response);
+  }
+
+  Future<http.Response> _send(Future<http.Response> Function() request) async {
+    try {
+      return await request();
+    } catch (_) {
+      throw Exception(
+        'Tidak bisa terhubung ke backend di $baseUrl. Pastikan saku-backend berjalan di port 3001 dan, untuk web, buka Flutter dari http://localhost:3000.',
+      );
+    }
   }
 
   Map<String, String> _headers({required bool authenticated}) {
@@ -97,8 +112,11 @@ class ApiClient {
       final decoded = jsonDecode(body);
       if (decoded is Map<String, dynamic>) {
         final message = decoded['message'];
-        if (message is String && message.trim().isNotEmpty) return message;
-        if (message is List && message.isNotEmpty) return message.first.toString();
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+        if (message is List && message.isNotEmpty)
+          return message.first.toString();
       }
     } catch (_) {}
     return 'Request gagal. Coba lagi.';

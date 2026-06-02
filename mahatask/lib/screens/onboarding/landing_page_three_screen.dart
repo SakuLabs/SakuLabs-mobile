@@ -34,21 +34,34 @@ class LandingPageThreeScreen extends StatelessWidget {
                 top: scale.y(0),
                 width: scale.w(237),
                 height: scale.h(395),
-                child: Image.asset(yellowVectorAsset, fit: BoxFit.fill),
+                child: Image.asset(
+                  yellowVectorAsset,
+                  fit: BoxFit.fill,
+                  cacheWidth: 442,
+                ),
               ),
               Positioned(
                 left: scale.x(279),
                 top: scale.y(0),
                 width: scale.w(114),
                 height: scale.h(168),
-                child: Image.asset(tealVectorAsset, fit: BoxFit.fill),
+                child: Image.asset(
+                  tealVectorAsset,
+                  fit: BoxFit.fill,
+                  cacheWidth: 228,
+                ),
               ),
               Positioned(
                 left: scale.x(98),
                 top: scale.y(112),
                 width: scale.w(301),
                 height: scale.h(315),
-                child: Image.asset(iconAsset, fit: BoxFit.fill),
+                child: Image.asset(
+                  iconAsset,
+                  fit: BoxFit.fill,
+                  cacheWidth: 602,
+                  filterQuality: FilterQuality.none,
+                ),
               ),
               Positioned(
                 left: scale.x(47),

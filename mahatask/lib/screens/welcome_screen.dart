@@ -25,12 +25,38 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   int _page = 0;
   int _burstTrigger = 0;
   bool _scrollLocked = false;
+  bool _assetsCached = false;
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_assetsCached) return;
+    _assetsCached = true;
+    for (final asset in _precacheAssets) {
+      precacheImage(AssetImage(asset), context);
+    }
+  }
+
+  static const List<String> _precacheAssets = [
+    'assets/img/LandingPage1_1.png',
+    'assets/img/LandingPage1_2.png',
+    'assets/img/LandingPage1_icon.png',
+    'assets/img/LandingPage2_1.png',
+    'assets/img/LandingPage2_icon.png',
+    'assets/img/LandingPage3_1.png',
+    'assets/img/LandingPage3_2.png',
+    'assets/img/LandingPage3_icon.png',
+    'assets/img/login_icon.png',
+    'assets/img/login1.png',
+    'assets/img/login2.png',
+    'assets/img/login_vector.png',
+  ];
 
   void _goNext() {
     HapticFeedback.lightImpact();
@@ -118,7 +144,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       controller: _controller,
                       physics: const PageScrollPhysics(),
                       pageSnapping: true,
-                      onPageChanged: (index) => setState(() => _page = index),
+                      onPageChanged: (index) {
+                        setState(() => _page = index);
+                      },
                       itemCount: _pageCount,
                       itemBuilder: (context, index) => _buildPage(index),
                     ),
@@ -136,7 +164,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Widget _buildPage(int index) {
-    return switch (index) {
+    final page = switch (index) {
       0 => LandingPageOneScreen(
         pageCount: _pageCount,
         onNext: _goNext,
@@ -153,5 +181,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         onSkip: _openLogin,
       ),
     };
+    return RepaintBoundary(child: page);
   }
 }

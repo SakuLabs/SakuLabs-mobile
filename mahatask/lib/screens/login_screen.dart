@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_provider.dart';
-import '../widgets/custom_text_field.dart';
+import '../widgets/auth/auth_card.dart';
+import '../widgets/auth/auth_layout.dart';
+import '../widgets/auth/auth_validators.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,6 +15,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -24,107 +27,174 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan password wajib diisi.')),
-      );
-      return;
-    }
-    final ok = await context.read<AuthProvider>().login(email: email, password: password);
+    if (!_formKey.currentState!.validate()) return;
+
+    final ok = await context.read<AuthProvider>().login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
     if (!mounted) return;
     if (ok) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
 
+  void _openRegister() {
+    context.read<AuthProvider>().clearError();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              const Text(
-                'Welcome back!',
-                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Enter your email to sign in to your account',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 16),
-              ),
-              const SizedBox(height: 60),
-              CustomTextField(
-                label: 'Email',
-                hint: 'name@example.com',
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                enabled: !auth.isLoading,
-              ),
-              CustomTextField(
-                label: 'Password',
-                hint: '********',
-                isPassword: true,
-                controller: _passwordController,
-                enabled: !auth.isLoading,
-              ),
-              if (auth.error != null) ...[
-                Text(auth.error!, style: const TextStyle(color: Colors.redAccent)),
-                const SizedBox(height: 14),
-              ],
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: auth.isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: auth.isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                        )
-                      : const Text('Sign In', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+
+    return AuthFrame(
+      child: (context, scale) {
+        return Stack(
+          children: [
+            AuthBackgroundDecor(scale: scale),
+            Positioned(
+              left: scale.x(38),
+              right: scale.x(38),
+              top: scale.y(78),
+              child: Column(
                 children: [
-                  const Text("Don't have an account? ", style: TextStyle(color: Colors.white60)),
-                  GestureDetector(
-                    onTap: auth.isLoading
-                        ? null
-                        : () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                            );
-                          },
-                    child: const Text(
-                      'Sign up',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  Text(
+                    'Welcome back!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: scale.font(23),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: scale.y(14)),
+                  Text(
+                    'Enter your email to sign in to your account',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: scale.font(15),
+                      height: 1.14,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
+            ),
+            Positioned(
+              left: scale.x(140),
+              top: scale.y(184),
+              width: scale.w(128),
+              height: scale.h(106),
+              child: Image.asset(
+                'assets/img/login_icon.png',
+                fit: BoxFit.contain,
+                cacheWidth: 256,
+              ),
+            ),
+            Positioned(
+              left: scale.x(23),
+              top: scale.y(276),
+              width: scale.w(328),
+              height: scale.h(312),
+              child: Form(
+                key: _formKey,
+                child: AuthCard(
+                  scale: scale,
+                  children: [
+                    AuthInputField(
+                      scale: scale,
+                      label: 'Email',
+                      hint: 'name@example.com',
+                      controller: _emailController,
+                      validator: AuthValidators.email,
+                      keyboardType: TextInputType.emailAddress,
+                      enabled: !auth.isLoading,
+                    ),
+                    AuthInputField(
+                      scale: scale,
+                      label: 'Password',
+                      hint: '',
+                      controller: _passwordController,
+                      validator: AuthValidators.password,
+                      obscureText: true,
+                      enabled: !auth.isLoading,
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: -scale.y(10),
+                          bottom: scale.y(28),
+                        ),
+                        child: Text(
+                          'Forgot Password?',
+                          style: TextStyle(
+                            color: const Color(0xFF8F8F96),
+                            fontSize: scale.font(11),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (auth.error != null) ...[
+                      Text(
+                        auth.error!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: const Color(0xFFFF5D5D),
+                          fontSize: scale.font(11),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(height: scale.y(8)),
+                    ],
+                    AuthPrimaryButton(
+                      scale: scale,
+                      text: 'Sign In',
+                      isLoading: auth.isLoading,
+                      onPressed: _submit,
+                    ),
+                    SizedBox(height: scale.y(15)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Don't have an account? ",
+                          style: TextStyle(
+                            color: const Color(0xFF8F8F96),
+                            fontSize: scale.font(12),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: auth.isLoading ? null : _openRegister,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Sign up',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: scale.font(12),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

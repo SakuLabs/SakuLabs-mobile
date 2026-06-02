@@ -151,27 +151,43 @@ class OnboardingPageDots extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final gap = constraints.maxWidth * 0.10;
-        final inactiveWidth = constraints.maxWidth * 0.17;
-        final activeWidth =
-            constraints.maxWidth -
-            (inactiveWidth * (pageCount - 1)) -
-            (gap * (pageCount - 1));
+        final dotWidth = constraints.maxWidth * 0.18;
+        final activeWidth = constraints.maxWidth * 0.34;
+        final gap = (constraints.maxWidth - activeWidth - (dotWidth * 2)) / 2;
+        final travel = dotWidth + gap;
+        final activeLeft =
+            activeIndex.clamp(0, pageCount - 1).toDouble() * travel;
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(pageCount, (index) {
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: index == activeIndex ? activeWidth : inactiveWidth,
+        return Stack(
+          alignment: Alignment.centerLeft,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(pageCount, (index) {
+                return Container(
+                  width: dotWidth,
+                  height: constraints.maxHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                );
+              }),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 360),
+              curve: Curves.easeOutBack,
+              left: activeLeft,
+              width: activeWidth,
               height: constraints.maxHeight,
-              margin: EdgeInsets.only(right: index == pageCount - 1 ? 0 : gap),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(11),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(11),
+                ),
               ),
-            );
-          }),
+            ),
+          ],
         );
       },
     );
