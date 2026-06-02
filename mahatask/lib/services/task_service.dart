@@ -5,10 +5,7 @@ enum TaskScope { personal, group }
 enum TaskPriority { low, medium, high }
 
 class GroupOption {
-  const GroupOption({
-    required this.id,
-    required this.name,
-  });
+  const GroupOption({required this.id, required this.name});
 
   final String id;
   final String name;
@@ -46,7 +43,7 @@ class TaskItem {
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
     DateTime? parsedDueDate;
-    final rawDueDate = json['dueDate'];
+    final rawDueDate = json['dueDate'] ?? json['deadline'];
     if (rawDueDate is String && rawDueDate.isNotEmpty) {
       parsedDueDate = DateTime.tryParse(rawDueDate);
     }
@@ -56,8 +53,10 @@ class TaskItem {
       title: (json['title'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       status: (json['status'] ?? 'TODO').toString(),
-      priority: (json['priority'] ?? 'MEDIUM').toString(),
-      progress: (json['progress'] is num) ? (json['progress'] as num).toInt() : 0,
+      priority: _taskPriorityLabel(json['priority']),
+      progress: (json['progress'] is num)
+          ? (json['progress'] as num).toInt()
+          : 0,
       groupId: json['groupId']?.toString(),
       dueDate: parsedDueDate,
     );
@@ -87,7 +86,9 @@ class TaskRecommendation {
       title: (json['title'] ?? '').toString(),
       priority: (json['priority'] ?? 'MEDIUM').toString(),
       score: (json['score'] is num) ? (json['score'] as num).toDouble() : 0,
-      estimatedMinutes: (json['estimatedMinutes'] is num) ? (json['estimatedMinutes'] as num).toInt() : 0,
+      estimatedMinutes: (json['estimatedMinutes'] is num)
+          ? (json['estimatedMinutes'] as num).toInt()
+          : 0,
       groupId: json['groupId']?.toString(),
     );
   }
@@ -123,7 +124,9 @@ class TaskService {
     required TaskPriority priority,
     required TaskScope scope,
     String? groupId,
+    DateTime? startDate,
     DateTime? dueDate,
+    int? progress,
   }) async {
     final payload = <String, dynamic>{
       'title': title.trim(),
@@ -131,15 +134,17 @@ class TaskService {
       'priority': _toApiPriority(priority),
     };
 
+    if (startDate != null) {
+      payload['startDate'] = startDate.toUtc().toIso8601String();
+    }
     if (dueDate != null) {
-      payload['deadline'] = _toDateOnlyString(dueDate);
+      payload['deadline'] = dueDate.toUtc().toIso8601String();
+    }
+    if (progress != null) {
+      payload['progress'] = progress.clamp(0, 100);
     }
 
-    final endpoint = scope == TaskScope.group && groupId != null && groupId.isNotEmpty
-        ? '/tasks/group/$groupId'
-        : '/tasks';
-
-    final result = await _client.post(endpoint, body: payload);
+    final result = await _client.post('/tasks', body: payload);
     if (result is Map<String, dynamic>) {
       return TaskItem.fromJson(result);
     }
@@ -208,11 +213,17 @@ class TaskService {
         return 'MEDIUM';
     }
   }
+}
 
-  String _toDateOnlyString(DateTime value) {
-    final y = value.year.toString().padLeft(4, '0');
-    final m = value.month.toString().padLeft(2, '0');
-    final d = value.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
+String _taskPriorityLabel(Object? value) {
+  if (value is num) {
+    if (value <= 1) return 'LOW';
+    if (value >= 3) return 'HIGH';
+    return 'MEDIUM';
   }
+  final text = (value ?? 'MEDIUM').toString().toUpperCase();
+  if (text == '1') return 'LOW';
+  if (text == '3') return 'HIGH';
+  if (text == '2') return 'MEDIUM';
+  return text;
 }
