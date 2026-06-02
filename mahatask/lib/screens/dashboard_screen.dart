@@ -66,10 +66,10 @@ class _DashboardHome extends StatelessWidget {
                 child: SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   padding: EdgeInsets.fromLTRB(
-                    scale.x(24),
-                    scale.y(12),
-                    scale.x(24),
-                    scale.y(104),
+                    scale.x(19),
+                    scale.y(30),
+                    scale.x(19),
+                    scale.y(96),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,7 +85,7 @@ class _DashboardHome extends StatelessWidget {
                       SizedBox(height: scale.y(18)),
                       Container(
                         width: double.infinity,
-                        constraints: BoxConstraints(minHeight: scale.y(790)),
+                        constraints: BoxConstraints(minHeight: scale.y(777)),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             begin: Alignment.topCenter,
@@ -107,28 +107,28 @@ class _DashboardHome extends StatelessWidget {
                         ),
                         child: Padding(
                           padding: EdgeInsets.fromLTRB(
-                            scale.x(14),
-                            scale.y(72),
-                            scale.x(14),
+                            scale.x(19),
+                            scale.y(67),
+                            scale.x(19),
                             scale.y(18),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _HeaderRow(scale: scale),
-                              SizedBox(height: scale.y(18)),
+                              SizedBox(height: scale.y(19)),
                               Text(
                                 "Let's Make\nToday Productive",
                                 style: TextStyle(
                                   color: const Color(0xFF020713),
-                                  fontSize: scale.font(22),
+                                  fontSize: scale.font(23),
                                   height: 1.08,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
-                              SizedBox(height: scale.y(14)),
-                              _ProgressCard(scale: scale),
                               SizedBox(height: scale.y(16)),
+                              _ProgressCard(scale: scale),
+                              SizedBox(height: scale.y(15)),
                               _TaskSectionHeader(scale: scale),
                               SizedBox(height: scale.y(8)),
                               _TaskFilters(scale: scale),
@@ -229,12 +229,12 @@ class _ProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: scale.y(126),
+      height: scale.h(138),
       padding: EdgeInsets.fromLTRB(
         scale.x(18),
-        scale.y(14),
-        scale.x(16),
-        scale.y(12),
+        scale.h(13),
+        scale.x(14),
+        scale.h(11),
       ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
@@ -244,6 +244,7 @@ class _ProgressCard extends StatelessWidget {
         children: [
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   "Today's Progress",
@@ -253,7 +254,7 @@ class _ProgressCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: scale.y(10)),
+                SizedBox(height: scale.h(9)),
                 SizedBox(
                   width: scale.w(76),
                   height: scale.w(76),
@@ -276,31 +277,35 @@ class _ProgressCard extends StatelessWidget {
           ),
           Container(
             width: 1,
-            height: scale.y(86),
+            height: scale.h(103),
             color: Colors.black.withValues(alpha: 0.86),
           ),
           SizedBox(width: scale.x(13)),
           SizedBox(
-            width: scale.w(78),
+            width: scale.w(83),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 _ProgressLegend(
+                  scale: scale,
                   number: '0',
                   label: 'Total Tasks',
                   color: Color(0xFF6C45FF),
                 ),
                 _ProgressLegend(
+                  scale: scale,
                   number: '0',
                   label: 'To Do',
                   color: Color(0xFFFF5D5D),
                 ),
                 _ProgressLegend(
+                  scale: scale,
                   number: '0',
                   label: 'In Progress',
                   color: Color(0xFFFFA640),
                 ),
                 _ProgressLegend(
+                  scale: scale,
                   number: '0',
                   label: 'Completed',
                   color: Color(0xFF5FE568),
@@ -515,11 +520,13 @@ class _CircleIconButton extends StatelessWidget {
 
 class _ProgressLegend extends StatelessWidget {
   const _ProgressLegend({
+    required this.scale,
     required this.number,
     required this.label,
     required this.color,
   });
 
+  final _DashScale scale;
   final String number;
   final String label;
   final Color color;
@@ -527,19 +534,19 @@ class _ProgressLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: EdgeInsets.symmetric(vertical: scale.h(1)),
       child: Row(
         children: [
           Container(
-            width: 23,
-            height: 23,
+            width: scale.w(23),
+            height: scale.w(23),
             decoration: const BoxDecoration(
               color: Color(0xFFE5E5E5),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.calendar_today_rounded, size: 12),
+            child: Icon(Icons.calendar_today_rounded, size: scale.w(12)),
           ),
-          const SizedBox(width: 5),
+          SizedBox(width: scale.x(5)),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -547,16 +554,18 @@ class _ProgressLegend extends StatelessWidget {
                 number,
                 style: TextStyle(
                   color: color,
-                  fontSize: 10,
+                  fontSize: scale.font(9),
                   height: 0.9,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFFB7B7B7),
-                  fontSize: 6,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: const Color(0xFFB7B7B7),
+                  fontSize: scale.font(5.6),
                   height: 1,
                   fontWeight: FontWeight.w700,
                 ),
@@ -782,6 +791,7 @@ class _DashScale {
   double x(double value) => value * width / 393;
   double y(double value) => value * height / 852;
   double w(double value) => value * width / 393;
+  double h(double value) => value * width / 393;
   double font(double value) => value * width / 393;
   double radius(double value) => value * width / 393;
 }

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_provider.dart';
+import '../services/navigation_provider.dart';
 import '../widgets/auth/auth_card.dart';
 import '../widgets/auth/auth_layout.dart';
 import '../widgets/auth/auth_validators.dart';
+import 'dashboard_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -34,6 +36,13 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordController.text,
     );
     if (!mounted || !ok) return;
+
+    context.read<NavigationProvider>().setIndex(0);
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      (_) => false,
+    );
   }
 
   void _openRegister() {

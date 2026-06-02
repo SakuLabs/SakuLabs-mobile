@@ -26,12 +26,12 @@ class CustomBottomNav extends StatelessWidget {
       child: Center(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final width = (constraints.maxWidth - 36).clamp(0.0, 337.0);
+            final width = (constraints.maxWidth - 38).clamp(0.0, 355.0);
 
             return Container(
               width: width,
-              margin: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              margin: const EdgeInsets.fromLTRB(19, 0, 19, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(999),
@@ -85,8 +85,8 @@ class _DashboardNavButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        width: active ? 74 : 55,
-        height: active ? 74 : 58,
+        width: active ? 66 : 56,
+        height: active ? 66 : 52,
         decoration: BoxDecoration(
           color: active ? const Color(0xFFFF5D5D) : Colors.transparent,
           shape: active ? BoxShape.circle : BoxShape.rectangle,
@@ -100,9 +100,9 @@ class _DashboardNavButton extends StatelessWidget {
                 Icon(
                   item.icon,
                   color: active ? Colors.white : Colors.black,
-                  size: active ? 30 : 23,
+                  size: active ? 28 : 21,
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
                   item.label,
                   maxLines: 1,
