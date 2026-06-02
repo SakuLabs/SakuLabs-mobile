@@ -124,9 +124,7 @@ class _MessagesBody extends StatelessWidget {
             final width = constraints.maxWidth.clamp(0.0, 393.0);
             final height = constraints.maxHeight;
             final scale = _ChatScale(width: width, height: height);
-            final visibleItems = tab == _MessageTab.group
-                ? groups
-                : friends;
+            final visibleItems = tab == _MessageTab.group ? groups : friends;
 
             return SizedBox(
               width: width,
@@ -549,10 +547,13 @@ class _ConversationTile extends StatelessWidget {
               ),
               if (unread > 0)
                 Container(
-                  minWidth: scale.w(23),
+                  constraints: BoxConstraints(minWidth: scale.w(23)),
                   height: scale.w(23),
                   margin: EdgeInsets.only(left: scale.x(8)),
-                  decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                  ),
                   child: Center(
                     child: Text(
                       unread > 99 ? '99+' : '$unread',
@@ -604,7 +605,6 @@ class _ConversationAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = title.trim().isEmpty ? '?' : title.trim()[0].toUpperCase();
     return Container(
       width: scale.w(42),
       height: scale.w(42),

@@ -184,16 +184,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                         ),
                                       )
                                     : _error != null
-                                        ? _ChatDetailError(
-                                            scale: scale,
-                                            error: _error!,
-                                            onReload: () => _loadMessages(),
-                                          )
-                                        : _MessageList(
-                                            scale: scale,
-                                            messages: _messages,
-                                            controller: _scrollController,
-                                          ),
+                                    ? _ChatDetailError(
+                                        scale: scale,
+                                        error: _error!,
+                                        onReload: () => _loadMessages(),
+                                      )
+                                    : _MessageList(
+                                        scale: scale,
+                                        messages: _messages,
+                                        controller: _scrollController,
+                                      ),
                               ),
                               _MessageComposer(
                                 scale: scale,
@@ -389,8 +389,9 @@ class _BubbleMessage extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment:
-              mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: mine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             Text(
               message.content,
@@ -620,7 +621,11 @@ class _ChatAvatar extends StatelessWidget {
       ),
       child: Center(
         child: isGroup
-            ? Icon(Icons.groups_2_outlined, color: Colors.black, size: scale.w(19))
+            ? Icon(
+                Icons.groups_2_outlined,
+                color: Colors.black,
+                size: scale.w(19),
+              )
             : Text(
                 title.trim().isEmpty ? '?' : title.trim()[0].toUpperCase(),
                 style: TextStyle(

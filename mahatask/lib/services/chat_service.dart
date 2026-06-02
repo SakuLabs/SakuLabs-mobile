@@ -18,7 +18,9 @@ class ChatMessage {
       id: (json['id'] ?? '').toString(),
       senderId: (json['senderId'] ?? '').toString(),
       content: (json['content'] ?? '').toString(),
-      createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()) ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse((json['createdAt'] ?? '').toString()) ??
+          DateTime.now(),
     );
   }
 }
@@ -52,10 +54,7 @@ class ChatService {
   }) async {
     await _client.post(
       '/chat/messages',
-      body: <String, dynamic>{
-        'groupId': groupId,
-        'content': content.trim(),
-      },
+      body: <String, dynamic>{'groupId': groupId, 'content': content.trim()},
     );
   }
 
