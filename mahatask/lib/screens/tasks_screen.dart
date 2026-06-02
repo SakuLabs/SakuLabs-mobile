@@ -1144,18 +1144,28 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
 
   Future<void> _pickDate({required bool deadline}) async {
     final current = deadline ? _deadline : _startDate;
-    final picked = await showDatePicker(
+    DateTime? picked;
+    await showDialog<void>(
       context: context,
-      initialDate: current,
-      firstDate: DateTime.now().subtract(const Duration(days: 1)),
-      lastDate: DateTime(DateTime.now().year + 5),
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      builder: (context) {
+        return _CalendarDialog(
+          selectedDay: current,
+          tasks: const <TaskItem>[],
+          onSelect: (day) {
+            picked = day;
+            Navigator.pop(context);
+          },
+        );
+      },
     );
     if (picked == null) return;
     setState(() {
+      final selected = picked!;
       final next = DateTime(
-        picked.year,
-        picked.month,
-        picked.day,
+        selected.year,
+        selected.month,
+        selected.day,
         current.hour,
       );
       if (deadline) {
@@ -1212,8 +1222,8 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: 380,
-            maxHeight: media.size.height * 0.82,
+            maxWidth: media.size.width * 0.9,
+            maxHeight: media.size.height * 0.78,
           ),
           child: Material(
             color: Colors.white,

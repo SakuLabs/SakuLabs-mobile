@@ -22,11 +22,19 @@ class OnboardingControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final controlsLift =
+        (bottomInset / scale.height) * FigmaScale.designSize.height;
+    final lift = controlsLift.clamp(0.0, 34.0).toDouble();
+    final buttonTop = 742 - lift;
+    final dotsTop = 790 - lift;
+    final skipTop = 782 - lift;
+
     return Stack(
       children: [
         Positioned(
           left: scale.x(145),
-          top: scale.y(742),
+          top: scale.y(buttonTop),
           width: scale.w(102),
           height: scale.h(36),
           child: OnboardingPrimaryButton(
@@ -37,7 +45,7 @@ class OnboardingControls extends StatelessWidget {
         ),
         Positioned(
           left: scale.x(169),
-          top: scale.y(790),
+          top: scale.y(dotsTop),
           width: scale.w(55),
           height: scale.h(7),
           child: OnboardingPageDots(
@@ -47,7 +55,7 @@ class OnboardingControls extends StatelessWidget {
         ),
         Positioned(
           left: scale.x(320),
-          top: scale.y(782),
+          top: scale.y(skipTop),
           width: scale.w(60),
           height: scale.h(28),
           child: OnboardingSkipButton(scale: scale, onPressed: onSkip),

@@ -123,41 +123,25 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1D),
-      body: Center(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.clamp(0.0, 393.0);
-            final height = (width * 852 / 393).clamp(
-              0.0,
-              constraints.maxHeight,
-            );
-
-            return SizedBox(
-              width: height * 393 / 852,
-              height: height,
-              child: Stack(
-                children: [
-                  Listener(
-                    onPointerSignal: _handlePointerSignal,
-                    child: PageView.builder(
-                      controller: _controller,
-                      physics: const PageScrollPhysics(),
-                      pageSnapping: true,
-                      onPageChanged: (index) {
-                        setState(() => _page = index);
-                      },
-                      itemCount: _pageCount,
-                      itemBuilder: (context, index) => _buildPage(index),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: OnboardingBurstOverlay(trigger: _burstTrigger),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+      body: Stack(
+        children: [
+          Listener(
+            onPointerSignal: _handlePointerSignal,
+            child: PageView.builder(
+              controller: _controller,
+              physics: const PageScrollPhysics(),
+              pageSnapping: true,
+              onPageChanged: (index) {
+                setState(() => _page = index);
+              },
+              itemCount: _pageCount,
+              itemBuilder: (context, index) => _buildPage(index),
+            ),
+          ),
+          Positioned.fill(
+            child: OnboardingBurstOverlay(trigger: _burstTrigger),
+          ),
+        ],
       ),
     );
   }

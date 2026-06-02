@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/auth_provider.dart';
 import '../services/navigation_provider.dart';
+import '../services/task_service.dart';
 import '../services/unread_provider.dart';
 import '../widgets/dashboard/bottom_nav_bar.dart';
 import 'messages_screen.dart';
@@ -44,17 +48,89 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _DashboardHome extends StatelessWidget {
+class _DashboardHome extends StatefulWidget {
   const _DashboardHome();
 
   @override
+  State<_DashboardHome> createState() => _DashboardHomeState();
+}
+
+class _DashboardHomeState extends State<_DashboardHome>
+    with AutomaticKeepAliveClientMixin {
+  final TaskService _taskService = TaskService();
+
+  bool _loading = true;
+  String? _error;
+  List<TaskItem> _tasks = const <TaskItem>[];
+  Timer? _refreshTimer;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => _loadTasks(silent: true),
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadTasks({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final tasks = await _taskService.fetchTasks();
+      if (!mounted) return;
+      setState(() => _tasks = tasks);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted && !silent) setState(() => _loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+    final name = context.watch<AuthProvider>().user?.name.trim();
+    final displayName = name == null || name.isEmpty ? 'Name' : name;
+    final total = _tasks.length;
+    final todo = _tasks
+        .where((task) => task.status.toUpperCase() == 'TODO')
+        .length;
+    final inProgress = _tasks
+        .where((task) => task.status.toUpperCase() == 'IN_PROGRESS')
+        .length;
+    final completed = _tasks.where((task) {
+      final status = task.status.toUpperCase();
+      return status == 'COMPLETED' || status == 'DONE';
+    }).length;
+    final progress = total == 0
+        ? 0.0
+        : _tasks.fold<int>(0, (sum, task) => sum + task.progress) / total / 100;
+    final shownTasks = _tasks.take(3).toList(growable: false);
     final topInset = MediaQuery.paddingOf(context).top;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
         final scale = _DashScale(width: width, height: height);
+        final sidePadding = width * 0.07;
+        final topPadding = topInset + height * 0.052;
+        final bottomPadding = height * 0.14;
 
         return RepaintBoundary(
           child: Container(
@@ -75,15 +151,19 @@ class _DashboardHome extends StatelessWidget {
             child: SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
-                scale.x(30),
-                topInset + scale.y(58),
-                scale.x(30),
-                scale.y(122),
+                sidePadding,
+                topPadding,
+                sidePadding,
+                bottomPadding,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _HeaderRow(scale: scale),
+                  _HeaderRow(
+                    scale: scale,
+                    displayName: displayName,
+                    onAdd: () => context.read<NavigationProvider>().setIndex(1),
+                  ),
                   SizedBox(height: scale.y(19)),
                   Text(
                     "Let's Make\nToday Productive",
@@ -95,31 +175,52 @@ class _DashboardHome extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: scale.y(16)),
-                  _ProgressCard(scale: scale),
+                  _ProgressCard(
+                    scale: scale,
+                    progress: progress,
+                    total: total,
+                    todo: todo,
+                    inProgress: inProgress,
+                    completed: completed,
+                  ),
                   SizedBox(height: scale.y(15)),
-                  _TaskSectionHeader(scale: scale),
+                  _TaskSectionHeader(
+                    scale: scale,
+                    onViewAll: () =>
+                        context.read<NavigationProvider>().setIndex(1),
+                  ),
                   SizedBox(height: scale.y(8)),
-                  _TaskFilters(scale: scale),
+                  _TaskFilters(
+                    scale: scale,
+                    todo: todo,
+                    inProgress: inProgress,
+                    completed: completed,
+                  ),
                   SizedBox(height: scale.y(10)),
-                  _TaskCard(
-                    scale: scale,
-                    title: 'Design Landing Page',
-                    due: '09:00 AM',
-                    tags: const ['Design', 'Work'],
-                    avatars: const [
-                      Color(0xFF55E377),
-                      Color(0xFFFFC2E8),
-                      Color(0xFFBFD4FF),
-                    ],
-                  ),
-                  SizedBox(height: scale.y(8)),
-                  _TaskCard(
-                    scale: scale,
-                    title: 'Send Invoice To Clients',
-                    due: '11:00 AM',
-                    tags: const ['Work'],
-                    avatars: const [Color(0xFF55E377)],
-                  ),
+                  if (_loading)
+                    SizedBox(
+                      height: scale.y(145),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF2386A2),
+                        ),
+                      ),
+                    )
+                  else if (_error != null)
+                    _DashboardError(
+                      scale: scale,
+                      error: _error!,
+                      onReload: _loadTasks,
+                    )
+                  else if (shownTasks.isEmpty)
+                    _DashboardEmpty(scale: scale)
+                  else
+                    ...shownTasks.map((task) {
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: scale.y(8)),
+                        child: _TaskCard.fromTask(scale: scale, task: task),
+                      );
+                    }),
                 ],
               ),
             ),
@@ -131,9 +232,15 @@ class _DashboardHome extends StatelessWidget {
 }
 
 class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({required this.scale});
+  const _HeaderRow({
+    required this.scale,
+    required this.displayName,
+    required this.onAdd,
+  });
 
   final _DashScale scale;
+  final String displayName;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +261,9 @@ class _HeaderRow extends StatelessWidget {
                 ),
               ),
               Text(
-                'Name',
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: const Color(0xFF020713),
                   fontSize: scale.font(8),
@@ -169,6 +278,7 @@ class _HeaderRow extends StatelessWidget {
           color: Colors.black,
           icon: Icons.add,
           iconColor: Colors.white,
+          onTap: onAdd,
         ),
         SizedBox(width: scale.x(10)),
         _CircleIconButton(
@@ -176,6 +286,7 @@ class _HeaderRow extends StatelessWidget {
           color: Colors.white,
           icon: Icons.notifications_none_rounded,
           iconColor: Colors.black,
+          onTap: () {},
         ),
       ],
     );
@@ -183,9 +294,21 @@ class _HeaderRow extends StatelessWidget {
 }
 
 class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({required this.scale});
+  const _ProgressCard({
+    required this.scale,
+    required this.progress,
+    required this.total,
+    required this.todo,
+    required this.inProgress,
+    required this.completed,
+  });
 
   final _DashScale scale;
+  final double progress;
+  final int total;
+  final int todo;
+  final int inProgress;
+  final int completed;
 
   @override
   Widget build(BuildContext context) {
@@ -221,10 +344,10 @@ class _ProgressCard extends StatelessWidget {
                   width: scale.w(76),
                   height: scale.w(76),
                   child: CustomPaint(
-                    painter: _ProgressRingPainter(progress: 0.75),
+                    painter: _ProgressRingPainter(progress: progress),
                     child: Center(
                       child: Text(
-                        '75%',
+                        '${(progress * 100).round()}%',
                         style: TextStyle(
                           color: const Color(0xFF222222),
                           fontSize: scale.font(12),
@@ -250,25 +373,25 @@ class _ProgressCard extends StatelessWidget {
               children: [
                 _ProgressLegend(
                   scale: scale,
-                  number: '0',
+                  number: '$total',
                   label: 'Total Tasks',
                   color: Color(0xFF6C45FF),
                 ),
                 _ProgressLegend(
                   scale: scale,
-                  number: '0',
+                  number: '$todo',
                   label: 'To Do',
                   color: Color(0xFFFF5D5D),
                 ),
                 _ProgressLegend(
                   scale: scale,
-                  number: '0',
+                  number: '$inProgress',
                   label: 'In Progress',
                   color: Color(0xFFFFA640),
                 ),
                 _ProgressLegend(
                   scale: scale,
-                  number: '0',
+                  number: '$completed',
                   label: 'Completed',
                   color: Color(0xFF5FE568),
                 ),
@@ -282,9 +405,10 @@ class _ProgressCard extends StatelessWidget {
 }
 
 class _TaskSectionHeader extends StatelessWidget {
-  const _TaskSectionHeader({required this.scale});
+  const _TaskSectionHeader({required this.scale, required this.onViewAll});
 
   final _DashScale scale;
+  final VoidCallback onViewAll;
 
   @override
   Widget build(BuildContext context) {
@@ -299,12 +423,21 @@ class _TaskSectionHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        Text(
-          'View All',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: scale.font(11),
-            fontWeight: FontWeight.w700,
+        TextButton(
+          onPressed: onViewAll,
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.black,
+            padding: EdgeInsets.zero,
+            minimumSize: Size(scale.w(54), scale.h(26)),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text(
+            'View All',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: scale.font(11),
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -313,19 +446,27 @@ class _TaskSectionHeader extends StatelessWidget {
 }
 
 class _TaskFilters extends StatelessWidget {
-  const _TaskFilters({required this.scale});
+  const _TaskFilters({
+    required this.scale,
+    required this.todo,
+    required this.inProgress,
+    required this.completed,
+  });
 
   final _DashScale scale;
+  final int todo;
+  final int inProgress;
+  final int completed;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _FilterChip(scale: scale, count: '4', label: 'ToDo', active: true),
+        _FilterChip(scale: scale, count: '$todo', label: 'ToDo', active: true),
         SizedBox(width: scale.x(6)),
-        _FilterChip(scale: scale, count: '4', label: 'In Progress'),
+        _FilterChip(scale: scale, count: '$inProgress', label: 'In Progress'),
         SizedBox(width: scale.x(6)),
-        _FilterChip(scale: scale, count: '4', label: 'Complete'),
+        _FilterChip(scale: scale, count: '$completed', label: 'Complete'),
       ],
     );
   }
@@ -336,13 +477,31 @@ class _TaskCard extends StatelessWidget {
     required this.scale,
     required this.title,
     required this.due,
+    required this.priority,
     required this.tags,
     required this.avatars,
   });
 
+  factory _TaskCard.fromTask({
+    required _DashScale scale,
+    required TaskItem task,
+  }) {
+    return _TaskCard(
+      scale: scale,
+      title: task.title.isEmpty ? 'Untitled Task' : task.title,
+      due: _formatTaskTime(task.dueDate),
+      priority: _priorityLabel(task.priority),
+      tags: [task.isGroupTask ? 'People' : 'Work'],
+      avatars: task.isGroupTask
+          ? const [Color(0xFF55E377), Color(0xFFFFC2E8)]
+          : const [Color(0xFF55E377)],
+    );
+  }
+
   final _DashScale scale;
   final String title;
   final String due;
+  final String priority;
   final List<String> tags;
   final List<Color> avatars;
 
@@ -389,7 +548,7 @@ class _TaskCard extends StatelessWidget {
               _MetaLine(
                 scale: scale,
                 icon: Icons.info_outline,
-                text: 'Priority: High',
+                text: 'Priority: $priority',
               ),
               const Spacer(),
               Row(
@@ -454,27 +613,102 @@ class _TaskCard extends StatelessWidget {
   }
 }
 
+class _DashboardError extends StatelessWidget {
+  const _DashboardError({
+    required this.scale,
+    required this.error,
+    required this.onReload,
+  });
+
+  final _DashScale scale;
+  final String error;
+  final VoidCallback onReload;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(scale.x(14)),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(scale.radius(16)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            error,
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: const Color(0xFFFF5D5D),
+              fontSize: scale.font(11),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: scale.h(8)),
+          TextButton(onPressed: onReload, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardEmpty extends StatelessWidget {
+  const _DashboardEmpty({required this.scale});
+
+  final _DashScale scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: scale.y(104),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(scale.radius(16)),
+      ),
+      child: Center(
+        child: Text(
+          'No tasks yet. Tap + to create one.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF5E7A83),
+            fontSize: scale.font(12),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CircleIconButton extends StatelessWidget {
   const _CircleIconButton({
     required this.scale,
     required this.color,
     required this.icon,
     required this.iconColor,
+    required this.onTap,
   });
 
   final _DashScale scale;
   final Color color;
   final IconData icon;
   final Color iconColor;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: scale.w(36),
-      height: scale.w(36),
-      child: DecoratedBox(
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Icon(icon, color: iconColor, size: scale.w(22)),
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: scale.w(36),
+        height: scale.w(36),
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          child: Icon(icon, color: iconColor, size: scale.w(22)),
+        ),
       ),
     );
   }
@@ -755,6 +989,9 @@ class _SakuAiHome extends StatelessWidget {
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
         final scale = _DashScale(width: width, height: height);
+        final sidePadding = width * 0.07;
+        final topPadding = topInset + height * 0.052;
+        final bottomPadding = height * 0.14;
 
         return Container(
           width: double.infinity,
@@ -770,15 +1007,20 @@ class _SakuAiHome extends StatelessWidget {
           child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
             padding: EdgeInsets.fromLTRB(
-              scale.x(30),
-              topInset + scale.y(58),
-              scale.x(30),
-              scale.y(122),
+              sidePadding,
+              topPadding,
+              sidePadding,
+              bottomPadding,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _HeaderRow(scale: scale),
+                _HeaderRow(
+                  scale: scale,
+                  displayName:
+                      context.watch<AuthProvider>().user?.name ?? 'Name',
+                  onAdd: () => context.read<NavigationProvider>().setIndex(1),
+                ),
                 SizedBox(height: scale.y(28)),
                 Text(
                   'SakuAI',
@@ -858,4 +1100,20 @@ class _DashScale {
   double h(double value) => value * width / 393;
   double font(double value) => value * width / 393;
   double radius(double value) => value * width / 393;
+}
+
+String _formatTaskTime(DateTime? value) {
+  if (value == null) return '--:--';
+  final local = value.toLocal();
+  final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+  final minute = local.minute.toString().padLeft(2, '0');
+  final period = local.hour >= 12 ? 'PM' : 'AM';
+  return '$hour:$minute $period';
+}
+
+String _priorityLabel(String value) {
+  final text = value.toUpperCase();
+  if (text == 'LOW') return 'Low';
+  if (text == 'HIGH') return 'High';
+  return 'Medium';
 }
