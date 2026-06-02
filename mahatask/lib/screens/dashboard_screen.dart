@@ -49,28 +49,97 @@ class _DashboardHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.clamp(0.0, 393.0);
-            final height = constraints.maxHeight;
-            final scale = _DashScale(width: width, height: height);
+    final topInset = MediaQuery.paddingOf(context).top;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        final scale = _DashScale(width: width, height: height);
 
-            return SizedBox(
-              width: width,
-              height: height,
-              child: RepaintBoundary(
-                child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(
-                    scale.x(19),
-                    scale.y(18),
-                    scale.x(19),
-                    scale.y(96),
+        return RepaintBoundary(
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFA8CBFF),
+                  Color(0xFFD8F0FF),
+                  Color(0xFFD9C2FF),
+                ],
+                stops: [0, 0.62, 1],
+              ),
+            ),
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                scale.x(30),
+                topInset + scale.y(58),
+                scale.x(30),
+                scale.y(122),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _HeaderRow(scale: scale),
+                  SizedBox(height: scale.y(19)),
+                  Text(
+                    "Let's Make\nToday Productive",
+                    style: TextStyle(
+                      color: const Color(0xFF020713),
+                      fontSize: scale.font(23),
+                      height: 1.08,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                  child: Column(
+                  SizedBox(height: scale.y(16)),
+                  _ProgressCard(scale: scale),
+                  SizedBox(height: scale.y(15)),
+                  _TaskSectionHeader(scale: scale),
+                  SizedBox(height: scale.y(8)),
+                  _TaskFilters(scale: scale),
+                  SizedBox(height: scale.y(10)),
+                  _TaskCard(
+                    scale: scale,
+                    title: 'Design Landing Page',
+                    due: '09:00 AM',
+                    tags: const ['Design', 'Work'],
+                    avatars: const [
+                      Color(0xFF55E377),
+                      Color(0xFFFFC2E8),
+                      Color(0xFFBFD4FF),
+                    ],
+                  ),
+                  SizedBox(height: scale.y(8)),
+                  _TaskCard(
+                    scale: scale,
+                    title: 'Send Invoice To Clients',
+                    due: '11:00 AM',
+                    tags: const ['Work'],
+                    avatars: const [Color(0xFF55E377)],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RemovedDashboardPreviewShell extends StatelessWidget {
+  const _RemovedDashboardPreviewShell();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox.shrink();
+  }
+}
+
+/*
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
@@ -157,6 +226,7 @@ class _DashboardHome extends StatelessWidget {
     );
   }
 }
+*/
 
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({required this.scale});
