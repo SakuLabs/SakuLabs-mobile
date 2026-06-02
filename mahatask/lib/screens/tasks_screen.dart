@@ -90,9 +90,13 @@ class _TasksScreenState extends State<TasksScreen>
       );
       if (!mounted) return;
       setState(() {
-        _tasks = _tasks
-            .map((item) => item.id == task.id ? updated : item)
-            .toList(growable: false);
+        if (status == 'DONE') {
+          _tasks = _tasks.where((item) => item.id != task.id).toList();
+        } else {
+          _tasks = _tasks
+              .map((item) => item.id == task.id ? updated : item)
+              .toList(growable: false);
+        }
       });
     } catch (error) {
       if (!mounted) return;
@@ -792,6 +796,11 @@ class _AgendaTaskCard extends StatelessWidget {
               SizedBox(width: scale.x(8)),
               _MiniAvatars(scale: scale, task: task),
               SizedBox(width: scale.x(7)),
+              _DoneTaskButton(
+                scale: scale,
+                onTap: () => onStatusChanged('DONE'),
+              ),
+              SizedBox(width: scale.x(7)),
               GestureDetector(
                 onTap: onToggleExpanded,
                 child: Container(
@@ -827,14 +836,7 @@ class _AgendaTaskCard extends StatelessWidget {
           SizedBox(height: expanded ? scale.h(17) : scale.h(14)),
           Row(
             children: [
-              Text(
-                'Links: www.${task.isGroupTask ? 'GroupTask' : 'Docstugas'}.com',
-                style: TextStyle(
-                  color: const Color(0xFF8B8B8B),
-                  fontSize: scale.font(7),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              _PriorityPill(scale: scale, priority: task.priority),
               const Spacer(),
               _StatusPill(scale: scale, task: task),
             ],
@@ -852,6 +854,74 @@ class _AgendaTaskCard extends StatelessWidget {
   }
 }
 
+class _DoneTaskButton extends StatelessWidget {
+  const _DoneTaskButton({required this.scale, required this.onTap});
+
+  final _AgendaScale scale;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: scale.w(27),
+        height: scale.w(27),
+        decoration: const BoxDecoration(
+          color: Color(0xFF60CF67),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.check_rounded,
+          color: Colors.white,
+          size: scale.w(18),
+        ),
+      ),
+    );
+  }
+}
+
+class _PriorityPill extends StatelessWidget {
+  const _PriorityPill({required this.scale, required this.priority});
+
+  final _AgendaScale scale;
+  final String priority;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = priority.toUpperCase();
+    final color = switch (text) {
+      'HIGH' => const Color(0xFFFF5D5D),
+      'LOW' => const Color(0xFF60CF67),
+      _ => const Color(0xFFFFB25A),
+    };
+    final label = switch (text) {
+      'HIGH' => 'High Important',
+      'LOW' => 'Low Important',
+      _ => 'Medium Important',
+    };
+
+    return Container(
+      height: scale.h(18),
+      padding: EdgeInsets.symmetric(horizontal: scale.x(8)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(scale.radius(10)),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: scale.font(7.2),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.scale, required this.task});
 
@@ -860,13 +930,14 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (task.status) {
-      'DONE' => const Color(0xFF60CF67),
+    final normalized = task.status.toUpperCase();
+    final color = switch (normalized) {
+      'DONE' || 'COMPLETED' => const Color(0xFF60CF67),
       'IN_PROGRESS' => const Color(0xFF2386A2),
       _ => const Color(0xFFFFB25A),
     };
-    final label = switch (task.status) {
-      'DONE' => 'Done',
+    final label = switch (normalized) {
+      'DONE' || 'COMPLETED' => 'Done',
       'IN_PROGRESS' => 'Doing',
       _ => 'To Do',
     };
@@ -954,140 +1025,181 @@ class _CalendarDialog extends StatelessWidget {
             width: width,
             height: constraints.maxHeight,
           );
-          return Container(
-            width: scale.w(313),
-            padding: EdgeInsets.fromLTRB(
-              scale.x(20),
-              scale.h(18),
-              scale.x(20),
-              scale.h(18),
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(scale.radius(20)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x33000000),
-                  blurRadius: 18,
-                  offset: Offset(0, 8),
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: scale.w(313),
+                padding: EdgeInsets.fromLTRB(
+                  scale.x(20),
+                  scale.h(18),
+                  scale.x(20),
+                  scale.h(18),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${_monthName(month.month)} ${month.year}',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: scale.font(15),
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(scale.radius(20)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 18,
+                      offset: Offset(0, 8),
                     ),
-                    Icon(Icons.chevron_left_rounded, size: scale.w(20)),
-                    Icon(Icons.chevron_right_rounded, size: scale.w(20)),
                   ],
                 ),
-                SizedBox(height: scale.h(14)),
-                Row(
-                  children:
-                      const ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-                          .map(
-                            (label) => Expanded(
-                              child: Center(
-                                child: Text(
-                                  label,
-                                  style: TextStyle(
-                                    color: Color(0xFF8A8A8A),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                ),
-                SizedBox(height: scale.h(9)),
-                for (var row = 0; row < rows; row++)
-                  Row(
-                    children: [
-                      for (var col = 0; col < 7; col++)
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
                         Expanded(
-                          child: Builder(
-                            builder: (_) {
-                              final index = row * 7 + col;
-                              final dayNum = index - leading + 1;
-                              if (dayNum < 1 || dayNum > daysInMonth) {
-                                return SizedBox(height: scale.h(34));
-                              }
-                              final date = DateTime(
-                                month.year,
-                                month.month,
-                                dayNum,
-                              );
-                              final active = _sameDay(date, selectedDay);
-                              final hasTask = tasks.any(
-                                (task) =>
-                                    task.dueDate != null &&
-                                    _sameDay(task.dueDate!, date),
-                              );
-                              return GestureDetector(
-                                onTap: () => onSelect(date),
-                                child: SizedBox(
-                                  height: scale.h(34),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Container(
-                                        width: scale.w(34),
-                                        height: scale.w(34),
-                                        decoration: BoxDecoration(
-                                          color: active
-                                              ? Colors.black
-                                              : Colors.transparent,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            '$dayNum',
-                                            style: TextStyle(
-                                              color: active
-                                                  ? Colors.white
-                                                  : Colors.black,
-                                              fontSize: scale.font(11),
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      if (hasTask)
-                                        Positioned(
-                                          bottom: scale.h(3),
-                                          child: Container(
-                                            width: scale.w(4),
-                                            height: scale.w(4),
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFF60CF67),
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
+                          child: Text(
+                            '${_monthName(month.month)} ${month.year}',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: scale.font(15),
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                    ],
+                        Icon(Icons.chevron_left_rounded, size: scale.w(20)),
+                        Icon(Icons.chevron_right_rounded, size: scale.w(20)),
+                      ],
+                    ),
+                    SizedBox(height: scale.h(14)),
+                    Row(
+                      children:
+                          const [
+                                'Sun',
+                                'Mon',
+                                'Tue',
+                                'Wed',
+                                'Thu',
+                                'Fri',
+                                'Sat',
+                              ]
+                              .map(
+                                (label) => Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        color: Color(0xFF8A8A8A),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                    SizedBox(height: scale.h(9)),
+                    for (var row = 0; row < rows; row++)
+                      Row(
+                        children: [
+                          for (var col = 0; col < 7; col++)
+                            Expanded(
+                              child: Builder(
+                                builder: (_) {
+                                  final index = row * 7 + col;
+                                  final dayNum = index - leading + 1;
+                                  if (dayNum < 1 || dayNum > daysInMonth) {
+                                    return SizedBox(height: scale.h(34));
+                                  }
+                                  final date = DateTime(
+                                    month.year,
+                                    month.month,
+                                    dayNum,
+                                  );
+                                  final active = _sameDay(date, selectedDay);
+                                  final hasTask = tasks.any(
+                                    (task) =>
+                                        task.dueDate != null &&
+                                        _sameDay(task.dueDate!, date),
+                                  );
+                                  return GestureDetector(
+                                    onTap: () => onSelect(date),
+                                    child: SizedBox(
+                                      height: scale.h(34),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Container(
+                                            width: scale.w(34),
+                                            height: scale.w(34),
+                                            decoration: BoxDecoration(
+                                              color: active
+                                                  ? Colors.black
+                                                  : Colors.transparent,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '$dayNum',
+                                                style: TextStyle(
+                                                  color: active
+                                                      ? Colors.white
+                                                      : Colors.black,
+                                                  fontSize: scale.font(11),
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          if (hasTask)
+                                            Positioned(
+                                              bottom: scale.h(3),
+                                              child: Container(
+                                                width: scale.w(4),
+                                                height: scale.w(4),
+                                                decoration: const BoxDecoration(
+                                                  color: Color(0xFF60CF67),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: scale.x(-10),
+                top: scale.h(-10),
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: scale.w(28),
+                    height: scale.w(28),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x33000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: const Color(0xFF8A8A8A),
+                      size: scale.w(19),
+                    ),
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -1114,7 +1226,6 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   var _priority = TaskPriority.high;
-  var _progress = 0;
   late DateTime _startDate;
   late DateTime _deadline;
   String? _error;
@@ -1199,7 +1310,6 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
         scope: TaskScope.personal,
         startDate: _startDate,
         dueDate: _deadline,
-        progress: _progress,
       );
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -1296,42 +1406,34 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<TaskPriority>(
                     initialValue: _priority,
-                    decoration: _inputDecoration('Priority'),
+                    decoration: _inputDecoration('Important Level'),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    selectedItemBuilder: (context) => const [
+                      Text('Low Important'),
+                      Text('Medium Important'),
+                      Text('High Important'),
+                    ],
                     items: const [
                       DropdownMenuItem(
                         value: TaskPriority.low,
-                        child: Text('LOW'),
+                        child: Text('Low Important'),
                       ),
                       DropdownMenuItem(
                         value: TaskPriority.medium,
-                        child: Text('MEDIUM'),
+                        child: Text('Medium Important'),
                       ),
                       DropdownMenuItem(
                         value: TaskPriority.high,
-                        child: Text('HIGH'),
+                        child: Text('High Important'),
                       ),
                     ],
                     onChanged: (value) {
                       if (value != null) setState(() => _priority = value);
                     },
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Progress $_progress%',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  Slider(
-                    value: _progress.toDouble(),
-                    min: 0,
-                    max: 100,
-                    divisions: 10,
-                    activeColor: const Color(0xFF2386A2),
-                    inactiveColor: const Color(0xFFD7ECF2),
-                    onChanged: (value) =>
-                        setState(() => _progress = value.round()),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 6),
@@ -1383,6 +1485,10 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: const TextStyle(
+        color: Color(0xFF8A95A3),
+        fontWeight: FontWeight.w700,
+      ),
       filled: true,
       fillColor: const Color(0xFFF8FAFC),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
