@@ -119,99 +119,71 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top;
     return Scaffold(
       backgroundColor: const Color(0xFF1D1D1F),
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth.clamp(0.0, 393.0);
-              final height = constraints.maxHeight;
-              final scale = _BubbleScale(width: width, height: height);
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
+          final scale = _BubbleScale(width: width, height: height);
 
-              return SizedBox(
-                width: width,
-                height: height,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    scale.x(39),
-                    scale.y(31),
-                    scale.x(39),
-                    0,
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFA1C4FD),
+                  Color(0xFFC2E9FB),
+                  Color(0xFFE0C3FC),
+                ],
+                stops: [0, 0.5, 1],
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(top: topInset),
+              child: Column(
+                children: [
+                  _ChatDetailHeader(
+                    scale: scale,
+                    title: widget.title,
+                    isGroup: widget.isGroup,
+                    onBack: () => Navigator.pop(context),
+                    onVideo: widget.isGroup ? null : _openVideoCall,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.isGroup ? 'Group Chat' : 'Direct Chat',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: scale.font(16),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: scale.y(12)),
-                      Expanded(
-                        child: Container(
-                          width: double.infinity,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color(0xFFA1C4FD),
-                                Color(0xFFC2E9FB),
-                                Color(0xFFE0C3FC),
-                              ],
-                              stops: [0, 0.5, 1],
+                  Expanded(
+                    child: _loading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF2386A2),
                             ),
+                          )
+                        : _error != null
+                        ? _ChatDetailError(
+                            scale: scale,
+                            error: _error!,
+                            onReload: () => _loadMessages(),
+                          )
+                        : _MessageList(
+                            scale: scale,
+                            messages: _messages,
+                            controller: _scrollController,
                           ),
-                          child: Column(
-                            children: [
-                              _ChatDetailHeader(
-                                scale: scale,
-                                title: widget.title,
-                                isGroup: widget.isGroup,
-                                onBack: () => Navigator.pop(context),
-                                onVideo: widget.isGroup ? null : _openVideoCall,
-                              ),
-                              Expanded(
-                                child: _loading
-                                    ? const Center(
-                                        child: CircularProgressIndicator(
-                                          color: Color(0xFF2386A2),
-                                        ),
-                                      )
-                                    : _error != null
-                                    ? _ChatDetailError(
-                                        scale: scale,
-                                        error: _error!,
-                                        onReload: () => _loadMessages(),
-                                      )
-                                    : _MessageList(
-                                        scale: scale,
-                                        messages: _messages,
-                                        controller: _scrollController,
-                                      ),
-                              ),
-                              _MessageComposer(
-                                scale: scale,
-                                controller: _messageController,
-                                sending: _sending,
-                                onSend: _send,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-              );
-            },
-          ),
-        ),
+                  _MessageComposer(
+                    scale: scale,
+                    controller: _messageController,
+                    sending: _sending,
+                    onSend: _send,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

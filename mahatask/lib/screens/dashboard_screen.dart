@@ -130,104 +130,6 @@ class _DashboardHome extends StatelessWidget {
   }
 }
 
-class _RemovedDashboardPreviewShell extends StatelessWidget {
-  const _RemovedDashboardPreviewShell();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox.shrink();
-  }
-}
-
-/*
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        constraints: BoxConstraints(minHeight: scale.y(777)),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Color(0xFFA8CBFF),
-                              Color(0xFFD8F0FF),
-                              Color(0xFFD9C2FF),
-                            ],
-                            stops: [0, 0.62, 1],
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x26000000),
-                              blurRadius: 22,
-                              offset: Offset(0, 12),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            scale.x(19),
-                            scale.y(67),
-                            scale.x(19),
-                            scale.y(18),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _HeaderRow(scale: scale),
-                              SizedBox(height: scale.y(19)),
-                              Text(
-                                "Let's Make\nToday Productive",
-                                style: TextStyle(
-                                  color: const Color(0xFF020713),
-                                  fontSize: scale.font(23),
-                                  height: 1.08,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              SizedBox(height: scale.y(16)),
-                              _ProgressCard(scale: scale),
-                              SizedBox(height: scale.y(15)),
-                              _TaskSectionHeader(scale: scale),
-                              SizedBox(height: scale.y(8)),
-                              _TaskFilters(scale: scale),
-                              SizedBox(height: scale.y(10)),
-                              _TaskCard(
-                                scale: scale,
-                                title: 'Design Landing Page',
-                                due: '09:00 AM',
-                                tags: const ['Design', 'Work'],
-                                avatars: const [
-                                  Color(0xFF55E377),
-                                  Color(0xFFFFC2E8),
-                                  Color(0xFFBFD4FF),
-                                ],
-                              ),
-                              SizedBox(height: scale.y(8)),
-                              _TaskCard(
-                                scale: scale,
-                                title: 'Send Invoice To Clients',
-                                due: '11:00 AM',
-                                tags: const ['Work'],
-                                avatars: const [Color(0xFF55E377)],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-*/
-
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({required this.scale});
 
@@ -847,121 +749,99 @@ class _SakuAiHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.clamp(0.0, 393.0);
-            final height = constraints.maxHeight;
-            final scale = _DashScale(width: width, height: height);
+    final topInset = MediaQuery.paddingOf(context).top;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        final scale = _DashScale(width: width, height: height);
 
-            return SizedBox(
-              width: width,
-              height: height,
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  scale.x(19),
-                  scale.y(18),
-                  scale.x(19),
-                  scale.y(96),
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFA8CBFF), Color(0xFFD8F0FF), Color(0xFFD9C2FF)],
+              stops: [0, 0.62, 1],
+            ),
+          ),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              scale.x(30),
+              topInset + scale.y(58),
+              scale.x(30),
+              scale.y(122),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HeaderRow(scale: scale),
+                SizedBox(height: scale.y(28)),
+                Text(
+                  'SakuAI',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: scale.font(30),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-                child: Container(
+                SizedBox(height: scale.y(8)),
+                Text(
+                  'Ask for study plans, task summaries, or schedule ideas.',
+                  style: TextStyle(
+                    color: const Color(0xFF5E7A83),
+                    fontSize: scale.font(13),
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: scale.y(24)),
+                Container(
                   width: double.infinity,
-                  constraints: BoxConstraints(minHeight: scale.y(777)),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFA8CBFF),
-                        Color(0xFFD8F0FF),
-                        Color(0xFFD9C2FF),
-                      ],
-                      stops: [0, 0.62, 1],
-                    ),
+                  padding: EdgeInsets.all(scale.x(18)),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.94),
+                    borderRadius: BorderRadius.circular(scale.radius(18)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 14,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
                   ),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      scale.x(19),
-                      scale.y(67),
-                      scale.x(19),
-                      scale.y(18),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _HeaderRow(scale: scale),
-                        SizedBox(height: scale.y(28)),
-                        Text(
-                          'SakuAI',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: scale.font(30),
-                            fontWeight: FontWeight.w900,
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Today’s prompt',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: scale.font(16),
+                          fontWeight: FontWeight.w900,
                         ),
-                        SizedBox(height: scale.y(8)),
-                        Text(
-                          'Ask for study plans, task summaries, or schedule ideas.',
-                          style: TextStyle(
-                            color: const Color(0xFF5E7A83),
-                            fontSize: scale.font(13),
-                            height: 1.25,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      ),
+                      SizedBox(height: scale.y(10)),
+                      Text(
+                        'Help me organize my highest priority tasks for this week.',
+                        style: TextStyle(
+                          color: const Color(0xFF5E7A83),
+                          fontSize: scale.font(13),
+                          height: 1.3,
+                          fontWeight: FontWeight.w700,
                         ),
-                        SizedBox(height: scale.y(24)),
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(scale.x(18)),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.94),
-                            borderRadius: BorderRadius.circular(
-                              scale.radius(18),
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x14000000),
-                                blurRadius: 14,
-                                offset: Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Today’s prompt',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: scale.font(16),
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              SizedBox(height: scale.y(10)),
-                              Text(
-                                'Help me organize my highest priority tasks for this week.',
-                                style: TextStyle(
-                                  color: const Color(0xFF5E7A83),
-                                  fontSize: scale.font(13),
-                                  height: 1.3,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-      ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

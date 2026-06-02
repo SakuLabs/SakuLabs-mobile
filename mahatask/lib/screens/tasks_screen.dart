@@ -61,10 +61,9 @@ class _TasksScreenState extends State<TasksScreen>
   }
 
   Future<void> _openCreateTaskSheet() async {
-    final created = await showModalBottomSheet<bool>(
+    final created = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.48),
       builder: (context) {
         return _CreateTaskSheet(
           service: _taskService,
@@ -252,132 +251,102 @@ class _TaskAgendaBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = context.watch<AuthProvider>().user?.name.trim();
     final displayName = name == null || name.isEmpty ? 'Name' : name;
+    final topInset = MediaQuery.paddingOf(context).top;
 
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.clamp(0.0, 393.0);
-            final height = constraints.maxHeight;
-            final scale = _AgendaScale(width: width, height: height);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        final scale = _AgendaScale(width: width, height: height);
 
-            return SizedBox(
-              width: width,
-              height: height,
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  scale.x(39),
-                  scale.y(18),
-                  scale.x(39),
-                  scale.y(96),
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFA1C4FD), Color(0xFFC2E9FB), Color(0xFFE0C3FC)],
+              stops: [0, 0.5, 1],
+            ),
+          ),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              scale.x(30),
+              topInset + scale.y(58),
+              scale.x(30),
+              scale.y(122),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _AgendaHeader(
+                  scale: scale,
+                  displayName: displayName,
+                  onCreateTask: onCreateTask,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      constraints: BoxConstraints(minHeight: scale.h(785)),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFFA1C4FD),
-                            Color(0xFFC2E9FB),
-                            Color(0xFFE0C3FC),
-                          ],
-                          stops: [0, 0.5, 1],
-                        ),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          scale.x(14),
-                          scale.h(72),
-                          scale.x(14),
-                          scale.h(18),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _AgendaHeader(
-                              scale: scale,
-                              displayName: displayName,
-                              onCreateTask: onCreateTask,
-                            ),
-                            SizedBox(height: scale.h(17)),
-                            _ScheduleTitleRow(
-                              scale: scale,
-                              selectedDay: selectedDay,
-                              onOpenCalendar: onOpenCalendar,
-                            ),
-                            SizedBox(height: scale.h(16)),
-                            _WeekStrip(
-                              scale: scale,
-                              selectedDay: selectedDay,
-                              onSelectDay: onSelectDay,
-                            ),
-                            SizedBox(height: scale.h(12)),
-                            _FilterStrip(
-                              scale: scale,
-                              selected: filter,
-                              onSelect: onSelectFilter,
-                            ),
-                            SizedBox(height: scale.h(12)),
-                            Text(
-                              "Today's Agenda",
-                              style: TextStyle(
-                                color: const Color(0xFF5E7A83),
-                                fontSize: scale.font(16),
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            SizedBox(height: scale.h(8)),
-                            if (isLoading)
-                              SizedBox(
-                                height: scale.h(250),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF2386A2),
-                                  ),
-                                ),
-                              )
-                            else if (error != null)
-                              _AgendaError(
-                                scale: scale,
-                                error: error!,
-                                onReload: onReload,
-                              )
-                            else if (tasks.isEmpty)
-                              _EmptyAgenda(scale: scale)
-                            else
-                              ...tasks.map((task) {
-                                return Padding(
-                                  padding: EdgeInsets.only(bottom: scale.h(14)),
-                                  child: _AgendaTaskCard(
-                                    scale: scale,
-                                    task: task,
-                                    expanded: expandedTaskIds.contains(task.id),
-                                    onToggleExpanded: () =>
-                                        onToggleExpanded(task),
-                                    onStatusChanged: (status) =>
-                                        onStatusChanged(task, status),
-                                    onDelete: () => onDelete(task),
-                                  ),
-                                );
-                              }),
-                          ],
-                        ),
+                SizedBox(height: scale.h(17)),
+                _ScheduleTitleRow(
+                  scale: scale,
+                  selectedDay: selectedDay,
+                  onOpenCalendar: onOpenCalendar,
+                ),
+                SizedBox(height: scale.h(16)),
+                _WeekStrip(
+                  scale: scale,
+                  selectedDay: selectedDay,
+                  onSelectDay: onSelectDay,
+                ),
+                SizedBox(height: scale.h(12)),
+                _FilterStrip(
+                  scale: scale,
+                  selected: filter,
+                  onSelect: onSelectFilter,
+                ),
+                SizedBox(height: scale.h(12)),
+                Text(
+                  "Today's Agenda",
+                  style: TextStyle(
+                    color: const Color(0xFF5E7A83),
+                    fontSize: scale.font(16),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: scale.h(8)),
+                if (isLoading)
+                  SizedBox(
+                    height: scale.h(250),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF2386A2),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+                  )
+                else if (error != null)
+                  _AgendaError(scale: scale, error: error!, onReload: onReload)
+                else if (tasks.isEmpty)
+                  _EmptyAgenda(scale: scale)
+                else
+                  ...tasks.map((task) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: scale.h(14)),
+                      child: _AgendaTaskCard(
+                        scale: scale,
+                        task: task,
+                        expanded: expandedTaskIds.contains(task.id),
+                        onToggleExpanded: () => onToggleExpanded(task),
+                        onStatusChanged: (status) =>
+                            onStatusChanged(task, status),
+                        onDelete: () => onDelete(task),
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1235,150 +1204,166 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD6D6D6),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Create Task',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 14),
-              _SheetField(
-                label: 'Title',
-                child: TextField(
-                  controller: _titleController,
-                  decoration: _inputDecoration('Project Assignment'),
-                ),
-              ),
-              _SheetField(
-                label: 'Description',
-                child: TextField(
-                  controller: _descriptionController,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: _inputDecoration('Apa saja isi tugasnya?'),
-                ),
-              ),
-              Row(
+    final media = MediaQuery.of(context);
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.fromLTRB(18, 18, 18, media.viewInsets.bottom + 18),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 380,
+            maxHeight: media.size.height * 0.82,
+          ),
+          child: Material(
+            color: Colors.white,
+            elevation: 18,
+            shadowColor: Colors.black.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(28),
+            clipBehavior: Clip.antiAlias,
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _DateButton(
-                      label: 'Start',
-                      value: _dateLabel(_startDate),
-                      onTap: () => _pickDate(deadline: false),
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD6D6D6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _DateButton(
-                      label: 'Deadline',
-                      value: _dateLabel(_deadline),
-                      onTap: () => _pickDate(deadline: true),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Create Task',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<TaskPriority>(
-                initialValue: _priority,
-                decoration: _inputDecoration('Priority'),
-                items: const [
-                  DropdownMenuItem(value: TaskPriority.low, child: Text('LOW')),
-                  DropdownMenuItem(
-                    value: TaskPriority.medium,
-                    child: Text('MEDIUM'),
-                  ),
-                  DropdownMenuItem(
-                    value: TaskPriority.high,
-                    child: Text('HIGH'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) setState(() => _priority = value);
-                },
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Progress $_progress%',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Slider(
-                value: _progress.toDouble(),
-                min: 0,
-                max: 100,
-                divisions: 10,
-                activeColor: const Color(0xFF2386A2),
-                inactiveColor: const Color(0xFFD7ECF2),
-                onChanged: (value) => setState(() => _progress = value.round()),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  _error!,
-                  style: const TextStyle(
-                    color: Color(0xFFFF5D5D),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _submitting ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5D5D),
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                  const SizedBox(height: 14),
+                  _SheetField(
+                    label: 'Title',
+                    child: TextField(
+                      controller: _titleController,
+                      decoration: _inputDecoration('Project Assignment'),
                     ),
                   ),
-                  child: _submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Create Task',
-                          style: TextStyle(fontWeight: FontWeight.w800),
+                  _SheetField(
+                    label: 'Description',
+                    child: TextField(
+                      controller: _descriptionController,
+                      minLines: 3,
+                      maxLines: 5,
+                      decoration: _inputDecoration('Apa saja isi tugasnya?'),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DateButton(
+                          label: 'Start',
+                          value: _dateLabel(_startDate),
+                          onTap: () => _pickDate(deadline: false),
                         ),
-                ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _DateButton(
+                          label: 'Deadline',
+                          value: _dateLabel(_deadline),
+                          onTap: () => _pickDate(deadline: true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<TaskPriority>(
+                    initialValue: _priority,
+                    decoration: _inputDecoration('Priority'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: TaskPriority.low,
+                        child: Text('LOW'),
+                      ),
+                      DropdownMenuItem(
+                        value: TaskPriority.medium,
+                        child: Text('MEDIUM'),
+                      ),
+                      DropdownMenuItem(
+                        value: TaskPriority.high,
+                        child: Text('HIGH'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setState(() => _priority = value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Progress $_progress%',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Slider(
+                    value: _progress.toDouble(),
+                    min: 0,
+                    max: 100,
+                    divisions: 10,
+                    activeColor: const Color(0xFF2386A2),
+                    inactiveColor: const Color(0xFFD7ECF2),
+                    onChanged: (value) =>
+                        setState(() => _progress = value.round()),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      _error!,
+                      style: const TextStyle(
+                        color: Color(0xFFFF5D5D),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: _submitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF5D5D),
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Create Task',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

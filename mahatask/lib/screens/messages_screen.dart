@@ -115,162 +115,132 @@ class _MessagesBody extends StatelessWidget {
     final displayName = name == null || name.isEmpty ? 'Name' : name;
     final unreadByUser = context.watch<UnreadProvider>().directUnreadByUser;
     final totalUnread = context.watch<UnreadProvider>().totalUnread;
+    final topInset = MediaQuery.paddingOf(context).top;
 
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.clamp(0.0, 393.0);
-            final height = constraints.maxHeight;
-            final scale = _ChatScale(width: width, height: height);
-            final visibleItems = tab == _MessageTab.group ? groups : friends;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        final scale = _ChatScale(width: width, height: height);
+        final visibleItems = tab == _MessageTab.group ? groups : friends;
 
-            return SizedBox(
-              width: width,
-              height: height,
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  scale.x(39),
-                  scale.y(18),
-                  scale.x(39),
-                  scale.y(96),
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFA1C4FD), Color(0xFFC2E9FB), Color(0xFFE0C3FC)],
+              stops: [0, 0.5, 1],
+            ),
+          ),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              scale.x(30),
+              topInset + scale.y(58),
+              scale.x(30),
+              scale.y(122),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ChatHeader(
+                  scale: scale,
+                  displayName: displayName,
+                  totalUnread: totalUnread,
+                  onAddFriend: onAddFriend,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      constraints: BoxConstraints(minHeight: scale.h(785)),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFFA1C4FD),
-                            Color(0xFFC2E9FB),
-                            Color(0xFFE0C3FC),
-                          ],
-                          stops: [0, 0.5, 1],
-                        ),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          scale.x(14),
-                          scale.h(72),
-                          scale.x(14),
-                          scale.h(18),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _ChatHeader(
-                              scale: scale,
-                              displayName: displayName,
-                              totalUnread: totalUnread,
-                              onAddFriend: onAddFriend,
-                            ),
-                            SizedBox(height: scale.h(20)),
-                            Text(
-                              'Messages',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: scale.font(25),
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            SizedBox(height: scale.h(12)),
-                            _ChatTabs(
-                              scale: scale,
-                              selected: tab,
-                              groupsCount: groups.length,
-                              friendsCount: friends.length,
-                              onChanged: onTabChanged,
-                            ),
-                            SizedBox(height: scale.h(14)),
-                            if (loading)
-                              SizedBox(
-                                height: scale.h(250),
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Color(0xFF2386A2),
-                                  ),
-                                ),
-                              )
-                            else if (error != null)
-                              _ChatError(
-                                scale: scale,
-                                error: error!,
-                                onReload: onReload,
-                              )
-                            else if (visibleItems.isEmpty)
-                              _EmptyChatList(
-                                scale: scale,
-                                isGroup: tab == _MessageTab.group,
-                              )
-                            else if (tab == _MessageTab.group)
-                              ...groups.map((group) {
-                                return _ConversationTile(
-                                  scale: scale,
-                                  title: group.name,
-                                  subtitle:
-                                      '${group.members.length} members • Group room',
-                                  icon: Icons.groups_2_outlined,
-                                  accent: const Color(0xFF2386A2),
-                                  unread: 0,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ChatDetailScreen(
-                                          id: group.id,
-                                          title: group.name,
-                                          isGroup: true,
-                                        ),
-                                      ),
-                                    ).then((_) => onReload());
-                                  },
-                                );
-                              })
-                            else
-                              ...friends.map((friend) {
-                                final unread = unreadByUser[friend.id] ?? 0;
-                                return _ConversationTile(
-                                  scale: scale,
-                                  title: friend.name,
-                                  subtitle: friend.userCode?.isNotEmpty == true
-                                      ? 'Friend code ${friend.userCode}'
-                                      : 'Tap to start a calm chat',
-                                  icon: Icons.person_outline_rounded,
-                                  accent: const Color(0xFFFF5D5D),
-                                  unread: unread,
-                                  avatarUrl: friend.avatarUrl,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ChatDetailScreen(
-                                          id: friend.id,
-                                          title: friend.name,
-                                          isGroup: false,
-                                        ),
-                                      ),
-                                    ).then((_) => onReload());
-                                  },
-                                );
-                              }),
-                          ],
-                        ),
+                SizedBox(height: scale.h(20)),
+                Text(
+                  'Messages',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: scale.font(25),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: scale.h(12)),
+                _ChatTabs(
+                  scale: scale,
+                  selected: tab,
+                  groupsCount: groups.length,
+                  friendsCount: friends.length,
+                  onChanged: onTabChanged,
+                ),
+                SizedBox(height: scale.h(14)),
+                if (loading)
+                  SizedBox(
+                    height: scale.h(250),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF2386A2),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+                  )
+                else if (error != null)
+                  _ChatError(scale: scale, error: error!, onReload: onReload)
+                else if (visibleItems.isEmpty)
+                  _EmptyChatList(
+                    scale: scale,
+                    isGroup: tab == _MessageTab.group,
+                  )
+                else if (tab == _MessageTab.group)
+                  ...groups.map((group) {
+                    return _ConversationTile(
+                      scale: scale,
+                      title: group.name,
+                      subtitle: '${group.members.length} members • Group room',
+                      icon: Icons.groups_2_outlined,
+                      accent: const Color(0xFF2386A2),
+                      unread: 0,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatDetailScreen(
+                              id: group.id,
+                              title: group.name,
+                              isGroup: true,
+                            ),
+                          ),
+                        ).then((_) => onReload());
+                      },
+                    );
+                  })
+                else
+                  ...friends.map((friend) {
+                    final unread = unreadByUser[friend.id] ?? 0;
+                    return _ConversationTile(
+                      scale: scale,
+                      title: friend.name,
+                      subtitle: friend.userCode?.isNotEmpty == true
+                          ? 'Friend code ${friend.userCode}'
+                          : 'Tap to start a calm chat',
+                      icon: Icons.person_outline_rounded,
+                      accent: const Color(0xFFFF5D5D),
+                      unread: unread,
+                      avatarUrl: friend.avatarUrl,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatDetailScreen(
+                              id: friend.id,
+                              title: friend.name,
+                              isGroup: false,
+                            ),
+                          ),
+                        ).then((_) => onReload());
+                      },
+                    );
+                  }),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
