@@ -26,7 +26,7 @@ class OnboardingControls extends StatelessWidget {
       children: [
         Positioned(
           left: scale.x(145),
-          top: scale.y(760),
+          top: scale.y(742),
           width: scale.w(102),
           height: scale.h(36),
           child: OnboardingPrimaryButton(
@@ -37,7 +37,7 @@ class OnboardingControls extends StatelessWidget {
         ),
         Positioned(
           left: scale.x(169),
-          top: scale.y(809),
+          top: scale.y(790),
           width: scale.w(55),
           height: scale.h(7),
           child: OnboardingPageDots(
@@ -47,7 +47,7 @@ class OnboardingControls extends StatelessWidget {
         ),
         Positioned(
           left: scale.x(320),
-          top: scale.y(802),
+          top: scale.y(782),
           width: scale.w(60),
           height: scale.h(28),
           child: OnboardingSkipButton(scale: scale, onPressed: onSkip),

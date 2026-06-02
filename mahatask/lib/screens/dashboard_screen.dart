@@ -5,7 +5,6 @@ import '../services/navigation_provider.dart';
 import '../services/unread_provider.dart';
 import '../widgets/dashboard/bottom_nav_bar.dart';
 import 'messages_screen.dart';
-import 'scheduler_screen.dart';
 import 'tasks_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -19,7 +18,7 @@ class DashboardScreen extends StatelessWidget {
       _DashboardHome(),
       TasksScreen(embedded: true),
       MessagesScreen(embedded: true),
-      SchedulerScreen(embedded: true),
+      _SakuAiHome(),
     ];
 
     return Scaffold(
@@ -67,22 +66,13 @@ class _DashboardHome extends StatelessWidget {
                   physics: const ClampingScrollPhysics(),
                   padding: EdgeInsets.fromLTRB(
                     scale.x(19),
-                    scale.y(30),
+                    scale.y(18),
                     scale.x(19),
                     scale.y(96),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Dashboard',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.34),
-                          fontSize: scale.font(15),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: scale.y(18)),
                       Container(
                         width: double.infinity,
                         constraints: BoxConstraints(minHeight: scale.y(777)),
@@ -779,6 +769,130 @@ class _ProgressRingPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ProgressRingPainter oldDelegate) {
     return oldDelegate.progress != progress;
+  }
+}
+
+class _SakuAiHome extends StatelessWidget {
+  const _SakuAiHome();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Center(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth.clamp(0.0, 393.0);
+            final height = constraints.maxHeight;
+            final scale = _DashScale(width: width, height: height);
+
+            return SizedBox(
+              width: width,
+              height: height,
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                  scale.x(19),
+                  scale.y(18),
+                  scale.x(19),
+                  scale.y(96),
+                ),
+                child: Container(
+                  width: double.infinity,
+                  constraints: BoxConstraints(minHeight: scale.y(777)),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFFA8CBFF),
+                        Color(0xFFD8F0FF),
+                        Color(0xFFD9C2FF),
+                      ],
+                      stops: [0, 0.62, 1],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      scale.x(19),
+                      scale.y(67),
+                      scale.x(19),
+                      scale.y(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _HeaderRow(scale: scale),
+                        SizedBox(height: scale.y(28)),
+                        Text(
+                          'SakuAI',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: scale.font(30),
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(height: scale.y(8)),
+                        Text(
+                          'Ask for study plans, task summaries, or schedule ideas.',
+                          style: TextStyle(
+                            color: const Color(0xFF5E7A83),
+                            fontSize: scale.font(13),
+                            height: 1.25,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(height: scale.y(24)),
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(scale.x(18)),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.94),
+                            borderRadius: BorderRadius.circular(
+                              scale.radius(18),
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x14000000),
+                                blurRadius: 14,
+                                offset: Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Today’s prompt',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: scale.font(16),
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              SizedBox(height: scale.y(10)),
+                              Text(
+                                'Help me organize my highest priority tasks for this week.',
+                                style: TextStyle(
+                                  color: const Color(0xFF5E7A83),
+                                  fontSize: scale.font(13),
+                                  height: 1.3,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 

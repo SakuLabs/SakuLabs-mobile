@@ -83,7 +83,7 @@ class LandingPageOneScreen extends StatelessWidget {
               ),
               Positioned(
                 left: scale.x(47),
-                top: scale.y(648),
+                top: scale.y(632),
                 width: scale.w(298),
                 height: scale.h(96),
                 child: OnboardingBodyText(

@@ -93,7 +93,7 @@ class LandingPageThreeScreen extends StatelessWidget {
               OnboardingBottomPanel(scale: scale, top: 552, height: 300),
               Positioned(
                 left: scale.x(47),
-                top: scale.y(638),
+                top: scale.y(622),
                 width: scale.w(298),
                 height: scale.h(76),
                 child: OnboardingBodyText(

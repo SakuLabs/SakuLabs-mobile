@@ -105,9 +105,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             Positioned(
               left: scale.x(32),
-              top: scale.y(hasError ? 238 : 255),
+              top: scale.y(hasError ? 224 : 255),
               width: scale.w(305),
-              height: scale.h(hasError ? 386 : 340),
+              height: scale.h(hasError ? 430 : 340),
               child: Form(
                 key: _formKey,
                 child: AuthCard(

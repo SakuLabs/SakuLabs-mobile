@@ -133,22 +133,13 @@ class _MessagesBody extends StatelessWidget {
                 physics: const ClampingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(
                   scale.x(39),
-                  scale.y(31),
+                  scale.y(18),
                   scale.x(39),
                   scale.y(96),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Chats',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        fontSize: scale.font(16),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: scale.y(12)),
                     Container(
                       width: double.infinity,
                       constraints: BoxConstraints(minHeight: scale.h(785)),
