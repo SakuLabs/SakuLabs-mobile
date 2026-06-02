@@ -30,8 +30,8 @@ class LandingPageOneScreen extends StatelessWidget {
           return Stack(
             children: [
               Positioned(
-                left: scale.x(247),
-                top: scale.y(74),
+                left: scale.x(246),
+                top: scale.y(66),
                 width: scale.w(149),
                 height: scale.h(336),
                 child: Image.asset(blueVectorAsset, fit: BoxFit.fill),
@@ -45,7 +45,7 @@ class LandingPageOneScreen extends StatelessWidget {
               ),
               Positioned(
                 left: scale.x(-4),
-                top: scale.y(340),
+                top: scale.y(434),
                 width: scale.w(190),
                 height: scale.h(247),
                 child: Image.asset(deepVectorAsset, fit: BoxFit.fill),
@@ -53,14 +53,14 @@ class LandingPageOneScreen extends StatelessWidget {
               OnboardingShelf(scale: scale),
               OnboardingBottomPanel(scale: scale),
               Positioned(
-                left: scale.x(125),
-                top: scale.y(440),
-                width: scale.w(289),
+                left: scale.x(108),
+                top: scale.y(438),
+                width: scale.w(282),
                 height: scale.h(74),
                 child: OnboardingTitle(
                   scale: scale,
                   children: const [
-                    TextSpan(text: 'Master Your Academic\nJourney '),
+                    TextSpan(text: 'Master Your Time Management '),
                     TextSpan(
                       text: 'with Ease',
                       style: TextStyle(fontWeight: FontWeight.w800),
@@ -70,7 +70,7 @@ class LandingPageOneScreen extends StatelessWidget {
               ),
               Positioned(
                 left: scale.x(47),
-                top: scale.y(650),
+                top: scale.y(648),
                 width: scale.w(298),
                 height: scale.h(96),
                 child: OnboardingBodyText(

@@ -75,14 +75,14 @@ class OnboardingGradients {
   static const pageOne = LinearGradient(
     begin: Alignment(-0.12, 1),
     end: Alignment(0.12, -1),
-    colors: [Color(0xFFEFAE36), Color(0xFF4B2CA9)],
+    colors: [Color(0xFFFFB25A), Color(0xFF5603AD)],
     stops: [0.142, 0.8831],
   );
 
   static const pageTwoThree = LinearGradient(
     begin: Alignment(0.03, 1),
     end: Alignment(-0.03, -1),
-    colors: [Color(0xFFEFAE36), Color(0xFF4B2CA9)],
+    colors: [Color(0xFFFFB25A), Color(0xFF5603AD)],
     stops: [0.1581, 0.9125],
   );
 }

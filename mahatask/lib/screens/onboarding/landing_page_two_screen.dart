@@ -36,8 +36,8 @@ class LandingPageTwoScreen extends StatelessWidget {
                 child: Image.asset(vectorAsset, fit: BoxFit.fill),
               ),
               Positioned(
-                left: scale.x(18),
-                top: scale.y(100),
+                left: scale.x(20),
+                top: scale.y(96),
                 width: scale.w(194),
                 height: scale.h(96),
                 child: OnboardingTitle(
@@ -58,23 +58,23 @@ class LandingPageTwoScreen extends StatelessWidget {
                 ),
               ),
               Positioned(
-                left: scale.x(19),
-                top: scale.y(202),
+                left: scale.x(16),
+                top: scale.y(194),
                 width: scale.w(342),
                 height: scale.h(384),
                 child: Image.asset(iconAsset, fit: BoxFit.fill),
               ),
               OnboardingShelf(
                 scale: scale,
-                left: 58,
-                top: 510,
-                width: 285,
-                height: 116,
+                left: 55,
+                top: 502,
+                width: 292,
+                height: 124,
               ),
               OnboardingBottomPanel(scale: scale),
               Positioned(
                 left: scale.x(47),
-                top: scale.y(650),
+                top: scale.y(648),
                 width: scale.w(298),
                 height: scale.h(88),
                 child: OnboardingBodyText(

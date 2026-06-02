@@ -44,15 +44,15 @@ class LandingPageThreeScreen extends StatelessWidget {
                 child: Image.asset(tealVectorAsset, fit: BoxFit.fill),
               ),
               Positioned(
-                left: scale.x(92),
-                top: scale.y(120),
+                left: scale.x(88),
+                top: scale.y(112),
                 width: scale.w(301),
                 height: scale.h(315),
                 child: Image.asset(iconAsset, fit: BoxFit.fill),
               ),
               Positioned(
-                left: scale.x(48),
-                top: scale.y(436),
+                left: scale.x(47),
+                top: scale.y(432),
                 width: scale.w(238),
                 height: scale.h(74),
                 child: OnboardingTitle(
@@ -71,14 +71,14 @@ class LandingPageThreeScreen extends StatelessWidget {
               OnboardingShelf(
                 scale: scale,
                 left: 286,
-                top: 522,
+                top: 514,
                 width: 160,
                 height: 112,
               ),
               OnboardingBottomPanel(scale: scale),
               Positioned(
                 left: scale.x(47),
-                top: scale.y(650),
+                top: scale.y(648),
                 width: scale.w(298),
                 height: scale.h(76),
                 child: OnboardingBodyText(
