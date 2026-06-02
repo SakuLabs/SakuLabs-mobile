@@ -85,7 +85,10 @@ class SocialService {
   }
 
   Future<List<SocialUser>> searchUsersByName(String query) async {
-    final data = await _client.post('/social/friends/search-name', body: <String, dynamic>{'q': query.trim()});
+    final data = await _client.post(
+      '/social/friends/search-name',
+      body: <String, dynamic>{'name': query.trim()},
+    );
     if (data is! List) return const <SocialUser>[];
     return data
         .whereType<Map<String, dynamic>>()

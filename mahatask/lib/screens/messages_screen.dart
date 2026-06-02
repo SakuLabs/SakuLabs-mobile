@@ -62,11 +62,12 @@ class _MessagesScreenState extends State<MessagesScreen>
   }
 
   Future<void> _openAddFriend() async {
-    await Navigator.push(
+    final changed = await showDialog<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const AddFriendScreen()),
+      barrierColor: Colors.black.withValues(alpha: 0.42),
+      builder: (_) => const AddFriendDialog(),
     );
-    await _load();
+    if (changed == true) await _load();
   }
 
   @override

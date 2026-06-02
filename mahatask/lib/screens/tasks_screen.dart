@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../services/auth_provider.dart';
 import '../services/task_service.dart';
 
-enum _TaskFilter { all, work, people, favorite }
+enum _TaskFilter { all, todo, inProgress, completed }
+
+enum _TaskSort { time, recommended }
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key, this.embedded = false});
@@ -24,6 +26,7 @@ class _TasksScreenState extends State<TasksScreen>
   String? _error;
   DateTime? _selectedDay;
   _TaskFilter? _filter;
+  _TaskSort _sort = _TaskSort.time;
   List<TaskItem> _tasks = const <TaskItem>[];
   List<GroupOption> _groups = const <GroupOption>[];
 
@@ -167,6 +170,8 @@ class _TasksScreenState extends State<TasksScreen>
       onOpenCalendar: _openCalendarPopup,
       onSelectDay: (day) => setState(() => _selectedDay = day),
       onSelectFilter: (filter) => setState(() => _filter = filter),
+      sort: _sort,
+      onSelectSort: (sort) => setState(() => _sort = sort),
       onToggleExpanded: _toggleExpanded,
       onStatusChanged: _updateStatus,
       onDelete: _deleteTask,
@@ -181,15 +186,16 @@ class _TasksScreenState extends State<TasksScreen>
     final filter = _currentFilter;
     final filtered = _tasks
         .where((task) {
+          final status = task.status.toUpperCase();
           switch (filter) {
             case _TaskFilter.all:
               return true;
-            case _TaskFilter.work:
-              return !task.isGroupTask;
-            case _TaskFilter.people:
-              return task.isGroupTask;
-            case _TaskFilter.favorite:
-              return task.priority == 'HIGH';
+            case _TaskFilter.todo:
+              return status == 'TODO';
+            case _TaskFilter.inProgress:
+              return status == 'IN_PROGRESS';
+            case _TaskFilter.completed:
+              return status == 'DONE' || status == 'COMPLETED';
           }
         })
         .toList(growable: false);
@@ -203,15 +209,44 @@ class _TasksScreenState extends State<TasksScreen>
     if (daily.isNotEmpty) return daily;
 
     final upcoming = filtered.where((task) => task.dueDate != null).toList()
-      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+      ..sort(_taskComparator);
     if (upcoming.isNotEmpty) return upcoming;
 
-    return filtered;
+    return filtered..sort(_taskComparator);
   }
 
   DateTime get _currentSelectedDay => _selectedDay ??= DateTime.now();
 
   _TaskFilter get _currentFilter => _filter ??= _TaskFilter.all;
+
+  int _taskComparator(TaskItem a, TaskItem b) {
+    if (_sort == _TaskSort.recommended) {
+      final score = _recommendationScore(b).compareTo(_recommendationScore(a));
+      if (score != 0) return score;
+    }
+    final aDue = a.dueDate ?? DateTime(9999);
+    final bDue = b.dueDate ?? DateTime(9999);
+    return aDue.compareTo(bDue);
+  }
+
+  int _recommendationScore(TaskItem task) {
+    final priority = switch (task.priority.toUpperCase()) {
+      'HIGH' => 30,
+      'MEDIUM' => 20,
+      'LOW' => 10,
+      _ => 15,
+    };
+    final status = switch (task.status.toUpperCase()) {
+      'TODO' => 10,
+      'IN_PROGRESS' => 18,
+      _ => 0,
+    };
+    final due = task.dueDate;
+    final urgency = due == null
+        ? 0
+        : 20 - due.difference(DateTime.now()).inDays.clamp(0, 20);
+    return priority + status + urgency;
+  }
 
   static bool _sameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
@@ -231,6 +266,8 @@ class _TaskAgendaBody extends StatelessWidget {
     required this.onOpenCalendar,
     required this.onSelectDay,
     required this.onSelectFilter,
+    required this.sort,
+    required this.onSelectSort,
     required this.onToggleExpanded,
     required this.onStatusChanged,
     required this.onDelete,
@@ -247,6 +284,8 @@ class _TaskAgendaBody extends StatelessWidget {
   final VoidCallback onOpenCalendar;
   final ValueChanged<DateTime> onSelectDay;
   final ValueChanged<_TaskFilter> onSelectFilter;
+  final _TaskSort sort;
+  final ValueChanged<_TaskSort> onSelectSort;
   final ValueChanged<TaskItem> onToggleExpanded;
   final Future<void> Function(TaskItem task, String status) onStatusChanged;
   final Future<void> Function(TaskItem task) onDelete;
@@ -307,6 +346,8 @@ class _TaskAgendaBody extends StatelessWidget {
                   scale: scale,
                   selected: filter,
                   onSelect: onSelectFilter,
+                  sort: sort,
+                  onSelectSort: onSelectSort,
                 ),
                 SizedBox(height: scale.h(12)),
                 Text(
