@@ -56,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final hasError = auth.error != null;
 
     return AuthFrame(
       child: (context, scale) {
@@ -104,9 +105,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             Positioned(
               left: scale.x(32),
-              top: scale.y(255),
+              top: scale.y(hasError ? 238 : 255),
               width: scale.w(305),
-              height: scale.h(340),
+              height: scale.h(hasError ? 386 : 340),
               child: Form(
                 key: _formKey,
                 child: AuthCard(
@@ -147,6 +148,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (auth.error != null) ...[
                       Text(
                         auth.error!,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: const Color(0xFFFF5D5D),

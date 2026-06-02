@@ -18,7 +18,7 @@ class ApiClient {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'http://10.0.2.2:$backendPort';
+        return 'http://localhost:$backendPort';
       default:
         return 'http://localhost:$backendPort';
     }

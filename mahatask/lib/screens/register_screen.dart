@@ -144,6 +144,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (auth.error != null) ...[
                       Text(
                         auth.error!,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: const Color(0xFFFF5D5D),
