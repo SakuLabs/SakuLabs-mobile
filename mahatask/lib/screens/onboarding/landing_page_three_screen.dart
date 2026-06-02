@@ -32,7 +32,7 @@ class LandingPageThreeScreen extends StatelessWidget {
               Positioned(
                 left: scale.x(0),
                 top: scale.y(0),
-                width: scale.w(221),
+                width: scale.w(237),
                 height: scale.h(395),
                 child: Image.asset(yellowVectorAsset, fit: BoxFit.fill),
               ),
@@ -44,7 +44,7 @@ class LandingPageThreeScreen extends StatelessWidget {
                 child: Image.asset(tealVectorAsset, fit: BoxFit.fill),
               ),
               Positioned(
-                left: scale.x(88),
+                left: scale.x(98),
                 top: scale.y(112),
                 width: scale.w(301),
                 height: scale.h(315),
