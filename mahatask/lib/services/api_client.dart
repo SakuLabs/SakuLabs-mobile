@@ -11,12 +11,16 @@ class ApiClient {
   final http.Client _client;
 
   static String get defaultBaseUrl {
-    if (kIsWeb) return 'http://localhost:3001';
+    const backendPort = '3001';
+    if (kIsWeb) {
+      final host = Uri.base.host.isEmpty ? 'localhost' : Uri.base.host;
+      return 'http://$host:$backendPort';
+    }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'http://10.0.2.2:3001';
+        return 'http://10.0.2.2:$backendPort';
       default:
-        return 'http://localhost:3001';
+        return 'http://localhost:$backendPort';
     }
   }
 
@@ -81,7 +85,7 @@ class ApiClient {
       return await request();
     } catch (_) {
       throw Exception(
-        'Tidak bisa terhubung ke backend di $baseUrl. Pastikan saku-backend berjalan di port 3001 dan, untuk web, buka Flutter dari http://localhost:3000.',
+        'Tidak bisa terhubung ke backend di $baseUrl. Pastikan saku-backend berjalan di port 3001.',
       );
     }
   }
@@ -113,12 +117,24 @@ class ApiClient {
       if (decoded is Map<String, dynamic>) {
         final message = decoded['message'];
         if (message is String && message.trim().isNotEmpty) {
-          return message;
+          return _friendlyMessage(message);
         }
-        if (message is List && message.isNotEmpty)
-          return message.first.toString();
+        if (message is List && message.isNotEmpty) {
+          return _friendlyMessage(message.first.toString());
+        }
       }
     } catch (_) {}
     return 'Request gagal. Coba lagi.';
+  }
+
+  String _friendlyMessage(String message) {
+    final normalized = message.toLowerCase();
+    if (normalized.contains('prisma') ||
+        normalized.contains('database server') ||
+        normalized.contains('can\'t reach database') ||
+        normalized.contains('invocation in')) {
+      return 'Backend berjalan, tapi database belum bisa diakses. Periksa koneksi Supabase dan DATABASE_URL.';
+    }
+    return message;
   }
 }

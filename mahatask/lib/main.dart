@@ -49,34 +49,6 @@ class _AppGate extends StatefulWidget {
 }
 
 class _AppGateState extends State<_AppGate> {
-  AuthProvider? _auth;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final next = context.read<AuthProvider>();
-    if (_auth == next) return;
-    _auth?.removeListener(_onAuthChanged);
-    _auth = next;
-    _auth?.addListener(_onAuthChanged);
-  }
-
-  void _onAuthChanged() {
-    final unread = context.read<UnreadProvider>();
-    if (_auth?.isAuthenticated == true) {
-      unread.start();
-    } else {
-      unread.stop();
-      unread.clear();
-    }
-  }
-
-  @override
-  void dispose() {
-    _auth?.removeListener(_onAuthChanged);
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final authenticated = context.watch<AuthProvider>().isAuthenticated;

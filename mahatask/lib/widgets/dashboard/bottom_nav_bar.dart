@@ -13,96 +13,132 @@ class CustomBottomNav extends StatelessWidget {
   final int messagesUnread;
 
   static const _items = <_NavItem>[
-    _NavItem(icon: Icons.grid_view_rounded, label: 'Home'),
-    _NavItem(icon: Icons.assignment_turned_in_outlined, label: 'Tasks'),
-    _NavItem(icon: Icons.calendar_month_outlined, label: 'Scheduler'),
-    _NavItem(icon: Icons.chat_bubble_outline, label: 'Messages'),
+    _NavItem(icon: Icons.grid_view_rounded, label: 'Dashboard'),
+    _NavItem(icon: Icons.checklist_rounded, label: 'Tasks'),
+    _NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Chats'),
+    _NavItem(icon: Icons.ac_unit_rounded, label: 'SakuAI'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final containerColor = isDark ? const Color(0xFF171717) : Colors.white;
-    final activeBg = isDark ? Colors.cyanAccent.withOpacity(0.12) : Theme.of(context).colorScheme.primary.withOpacity(0.12);
-    final activeIcon = Theme.of(context).colorScheme.primary;
-    final inactiveIcon = isDark ? Colors.white54 : Colors.black45;
-    final activeText = isDark ? Colors.white : const Color(0xFF0F172A);
-    final inactiveText = isDark ? Colors.white38 : Colors.black45;
-    final shadow = isDark ? const Color(0x40000000) : const Color(0x14000000);
     return SafeArea(
       top: false,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: containerColor,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: shadow,
-              blurRadius: 24,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Row(
-          children: List.generate(_items.length, (index) {
-            final item = _items[index];
-            final isActive = currentIndex == index;
-            return Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => onTap(index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isActive ? activeBg : Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
+      child: Center(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = (constraints.maxWidth - 36).clamp(0.0, 337.0);
+
+            return Container(
+              width: width,
+              margin: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x26000000),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedScale(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeOutCubic,
-                        scale: isActive ? 1.07 : 1,
-                        child: Icon(
-                          item.icon,
-                          color: isActive ? activeIcon : inactiveIcon,
-                          size: 23,
-                        ),
-                      ),
-                      if (index == 3 && messagesUnread > 0)
-                        Container(
-                          margin: const EdgeInsets.only(top: 2),
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            messagesUnread > 99 ? '99+' : '$messagesUnread',
-                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                          ),
-                        )
-                      else
-                        const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        style: TextStyle(
-                          color: isActive ? activeText : inactiveText,
-                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(_items.length, (index) {
+                  final item = _items[index];
+                  final isActive = currentIndex == index;
+                  return _DashboardNavButton(
+                    item: item,
+                    active: isActive,
+                    unread: index == 2 ? messagesUnread : 0,
+                    onTap: () => onTap(index),
+                  );
+                }),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardNavButton extends StatelessWidget {
+  const _DashboardNavButton({
+    required this.item,
+    required this.active,
+    required this.unread,
+    required this.onTap,
+  });
+
+  final _NavItem item;
+  final bool active;
+  final int unread;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        width: active ? 74 : 55,
+        height: active ? 74 : 58,
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFFFF5D5D) : Colors.transparent,
+          shape: active ? BoxShape.circle : BoxShape.rectangle,
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  item.icon,
+                  color: active ? Colors.white : Colors.black,
+                  size: active ? 30 : 23,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: active ? Colors.white : Colors.black,
+                    fontSize: active ? 8 : 8,
+                    fontWeight: active ? FontWeight.w800 : FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            if (unread > 0)
+              Positioned(
+                top: 5,
+                right: 7,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    unread > 99 ? '99+' : '$unread',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            );
-          }),
+          ],
         ),
       ),
     );
@@ -110,10 +146,7 @@ class CustomBottomNav extends StatelessWidget {
 }
 
 class _NavItem {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-  });
+  const _NavItem({required this.icon, required this.label});
 
   final IconData icon;
   final String label;

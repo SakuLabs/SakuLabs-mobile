@@ -11,80 +11,26 @@ class AuthCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(scale.font(20)),
+      borderRadius: BorderRadius.circular(scale.font(17)),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: const Color(0xFFFAFAFA),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33000000),
-              blurRadius: 24,
-              offset: Offset(0, 14),
-            ),
-            BoxShadow(
-              color: Color(0x1AFFFFFF),
-              blurRadius: 8,
-              offset: Offset(-2, -2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(scale.font(17)),
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              left: -scale.x(28),
-              top: -scale.y(28),
-              width: scale.w(104),
-              height: scale.h(104),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFB25A).withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                ),
-              ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            scale.x(25),
+            scale.y(27),
+            scale.x(25),
+            scale.y(22),
+          ),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
             ),
-            Positioned(
-              right: -scale.x(24),
-              bottom: -scale.y(34),
-              width: scale.w(118),
-              height: scale.h(118),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF22C1B8).withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              height: scale.h(5),
-              child: const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0xFFFF5D5D),
-                      Color(0xFFFFB25A),
-                      Color(0xFF22C1B8),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                scale.x(22),
-                scale.y(28),
-                scale.x(22),
-                scale.y(22),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -116,7 +62,7 @@ class AuthInputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: scale.y(20)),
+      padding: EdgeInsets.only(bottom: scale.y(22)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -150,7 +96,7 @@ class AuthInputField extends StatelessWidget {
               fillColor: const Color(0xFFFFFFFF),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: scale.x(10),
-                vertical: scale.y(11),
+                vertical: scale.y(9),
               ),
               errorStyle: TextStyle(fontSize: scale.font(10), height: 1.1),
               enabledBorder: OutlineInputBorder(
@@ -200,7 +146,7 @@ class AuthPrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: scale.h(36),
+      height: scale.h(35),
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(

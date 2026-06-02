@@ -33,10 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    }
+    if (!mounted || !ok) return;
   }
 
   void _openRegister() {
@@ -86,10 +83,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             Positioned(
-              left: scale.x(140),
-              top: scale.y(184),
+              left: scale.x(136),
+              top: scale.y(183),
               width: scale.w(128),
-              height: scale.h(106),
+              height: scale.h(98),
               child: Image.asset(
                 'assets/img/login_icon.png',
                 fit: BoxFit.contain,
@@ -97,10 +94,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             Positioned(
-              left: scale.x(23),
-              top: scale.y(276),
-              width: scale.w(328),
-              height: scale.h(312),
+              left: scale.x(32),
+              top: scale.y(255),
+              width: scale.w(305),
+              height: scale.h(340),
               child: Form(
                 key: _formKey,
                 child: AuthCard(
@@ -127,10 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: Padding(
-                        padding: EdgeInsets.only(
-                          top: -scale.y(10),
-                          bottom: scale.y(28),
-                        ),
+                        padding: EdgeInsets.only(top: 0, bottom: scale.y(26)),
                         child: Text(
                           'Forgot Password?',
                           style: TextStyle(
@@ -159,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       isLoading: auth.isLoading,
                       onPressed: _submit,
                     ),
-                    SizedBox(height: scale.y(15)),
+                    SizedBox(height: scale.y(13)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

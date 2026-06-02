@@ -16,11 +16,10 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => SessionStore.isLoggedIn;
   SessionUser? get user => SessionStore.user;
 
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
-    return _authenticate(() => _service.login(email: email, password: password));
+  Future<bool> login({required String email, required String password}) async {
+    return _authenticate(
+      () => _service.login(email: email, password: password),
+    );
   }
 
   Future<bool> register({
@@ -40,6 +39,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void clearError() {
+    if (_error == null) return;
     _error = null;
     notifyListeners();
   }

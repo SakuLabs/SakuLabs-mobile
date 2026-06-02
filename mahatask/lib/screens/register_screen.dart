@@ -36,10 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    }
+    if (!mounted || !ok) return;
   }
 
   void _openLogin() {
@@ -101,9 +98,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             Positioned(
               left: scale.x(35),
-              top: scale.y(276),
+              top: scale.y(266),
               width: scale.w(305),
-              height: scale.h(382),
+              height: scale.h(420),
               child: Form(
                 key: _formKey,
                 child: AuthCard(

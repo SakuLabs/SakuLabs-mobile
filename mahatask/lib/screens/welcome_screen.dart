@@ -38,25 +38,24 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     super.didChangeDependencies();
     if (_assetsCached) return;
     _assetsCached = true;
-    for (final asset in _precacheAssets) {
-      precacheImage(AssetImage(asset), context);
+    for (final asset in _precacheAssets.entries) {
+      precacheImage(
+        ResizeImage(AssetImage(asset.key), width: asset.value),
+        context,
+      );
     }
   }
 
-  static const List<String> _precacheAssets = [
-    'assets/img/LandingPage1_1.png',
-    'assets/img/LandingPage1_2.png',
-    'assets/img/LandingPage1_icon.png',
-    'assets/img/LandingPage2_1.png',
-    'assets/img/LandingPage2_icon.png',
-    'assets/img/LandingPage3_1.png',
-    'assets/img/LandingPage3_2.png',
-    'assets/img/LandingPage3_icon.png',
-    'assets/img/login_icon.png',
-    'assets/img/login1.png',
-    'assets/img/login2.png',
-    'assets/img/login_vector.png',
-  ];
+  static const Map<String, int> _precacheAssets = {
+    'assets/img/LandingPage1_1.png': 380,
+    'assets/img/LandingPage1_2.png': 298,
+    'assets/img/LandingPage1_icon.png': 786,
+    'assets/img/LandingPage2_1.png': 422,
+    'assets/img/LandingPage2_icon.png': 684,
+    'assets/img/LandingPage3_1.png': 442,
+    'assets/img/LandingPage3_2.png': 228,
+    'assets/img/LandingPage3_icon.png': 602,
+  };
 
   void _goNext() {
     HapticFeedback.lightImpact();
@@ -79,8 +78,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     _controller.animateToPage(
       target,
-      duration: const Duration(milliseconds: 560),
-      curve: Curves.easeOutBack,
+      duration: const Duration(milliseconds: 430),
+      curve: Curves.easeOutCubic,
     );
   }
 
