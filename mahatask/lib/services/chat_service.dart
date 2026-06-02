@@ -73,7 +73,7 @@ class ChatService {
   }
 
   Future<Map<String, int>> getDirectUnreadCounts() async {
-    final data = await _client.get('/chat/dm/unread/counts');
+    final data = await _client.get('/chat/unread');
     if (data is! Map) return const <String, int>{};
     final counts = <String, int>{};
     data.forEach((key, value) {
