@@ -22,8 +22,8 @@ class _TasksScreenState extends State<TasksScreen>
 
   bool _isLoading = true;
   String? _error;
-  DateTime _selectedDay = DateTime.now();
-  _TaskFilter _filter = _TaskFilter.all;
+  DateTime? _selectedDay;
+  _TaskFilter? _filter;
   List<TaskItem> _tasks = const <TaskItem>[];
   List<GroupOption> _groups = const <GroupOption>[];
 
@@ -69,7 +69,7 @@ class _TasksScreenState extends State<TasksScreen>
         return _CreateTaskSheet(
           service: _taskService,
           groups: _groups,
-          initialDay: _selectedDay,
+          initialDay: _currentSelectedDay,
         );
       },
     );
@@ -136,7 +136,7 @@ class _TasksScreenState extends State<TasksScreen>
       barrierColor: Colors.black.withValues(alpha: 0.46),
       builder: (context) {
         return _CalendarDialog(
-          selectedDay: _selectedDay,
+          selectedDay: _currentSelectedDay,
           tasks: _tasks,
           onSelect: (day) {
             setState(() => _selectedDay = day);
@@ -150,12 +150,14 @@ class _TasksScreenState extends State<TasksScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final selectedDay = _currentSelectedDay;
+    final filter = _currentFilter;
     final body = _TaskAgendaBody(
       isLoading: _isLoading,
       error: _error,
       tasks: _visibleTasks(),
-      selectedDay: _selectedDay,
-      filter: _filter,
+      selectedDay: selectedDay,
+      filter: filter,
       expandedTaskIds: _expandedTaskIds,
       onReload: _loadData,
       onCreateTask: _openCreateTaskSheet,
@@ -172,9 +174,11 @@ class _TasksScreenState extends State<TasksScreen>
   }
 
   List<TaskItem> _visibleTasks() {
+    final selectedDay = _currentSelectedDay;
+    final filter = _currentFilter;
     final filtered = _tasks
         .where((task) {
-          switch (_filter) {
+          switch (filter) {
             case _TaskFilter.all:
               return true;
             case _TaskFilter.work:
@@ -190,17 +194,21 @@ class _TasksScreenState extends State<TasksScreen>
     final daily = filtered
         .where(
           (task) =>
-              task.dueDate != null && _sameDay(task.dueDate!, _selectedDay),
+              task.dueDate != null && _sameDay(task.dueDate!, selectedDay),
         )
         .toList(growable: false);
     if (daily.isNotEmpty) return daily;
 
     final upcoming = filtered.where((task) => task.dueDate != null).toList()
       ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
-    if (upcoming.isNotEmpty) return upcoming.take(4).toList(growable: false);
+    if (upcoming.isNotEmpty) return upcoming;
 
-    return filtered.take(4).toList(growable: false);
+    return filtered;
   }
+
+  DateTime get _currentSelectedDay => _selectedDay ??= DateTime.now();
+
+  _TaskFilter get _currentFilter => _filter ??= _TaskFilter.all;
 
   static bool _sameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;

@@ -229,12 +229,12 @@ class _ProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: scale.h(138),
+      height: scale.h(148),
       padding: EdgeInsets.fromLTRB(
         scale.x(18),
-        scale.h(13),
+        scale.h(12),
         scale.x(14),
-        scale.h(11),
+        scale.h(10),
       ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
@@ -244,7 +244,7 @@ class _ProgressCard extends StatelessWidget {
         children: [
           Expanded(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   "Today's Progress",
@@ -254,7 +254,7 @@ class _ProgressCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: scale.h(9)),
+                SizedBox(height: scale.h(8)),
                 SizedBox(
                   width: scale.w(76),
                   height: scale.w(76),
