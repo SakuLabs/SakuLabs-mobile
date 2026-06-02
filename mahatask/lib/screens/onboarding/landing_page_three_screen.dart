@@ -70,15 +70,17 @@ class LandingPageThreeScreen extends StatelessWidget {
               ),
               OnboardingShelf(
                 scale: scale,
-                left: 286,
-                top: 514,
-                width: 160,
-                height: 112,
+                left: 250,
+                top: 506,
+                width: 166,
+                height: 96,
+                roundTopLeft: true,
+                roundTopRight: false,
               ),
-              OnboardingBottomPanel(scale: scale),
+              OnboardingBottomPanel(scale: scale, top: 552, height: 300),
               Positioned(
                 left: scale.x(47),
-                top: scale.y(648),
+                top: scale.y(638),
                 width: scale.w(298),
                 height: scale.h(76),
                 child: OnboardingBodyText(
