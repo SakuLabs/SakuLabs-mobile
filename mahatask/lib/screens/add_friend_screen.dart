@@ -12,9 +12,7 @@ class AddFriendScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF1D1D1F),
       body: Center(
-        child: AddFriendDialog(
-          onClose: () => Navigator.pop(context),
-        ),
+        child: AddFriendDialog(onClose: () => Navigator.pop(context)),
       ),
     );
   }
@@ -125,7 +123,8 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                         ),
                       ),
                       IconButton(
-                        onPressed: widget.onClose ?? () => Navigator.pop(context),
+                        onPressed:
+                            widget.onClose ?? () => Navigator.pop(context),
                         icon: const Icon(Icons.close_rounded),
                       ),
                     ],

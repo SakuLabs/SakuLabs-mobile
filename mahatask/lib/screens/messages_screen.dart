@@ -63,7 +63,7 @@ class _MessagesScreenState extends State<MessagesScreen>
 
   Future<void> _openAddFriend() async {
     final changed = await showDialog<bool>(
-      context,
+      context: context,
       barrierColor: Colors.black.withValues(alpha: 0.42),
       builder: (_) => const AddFriendDialog(),
     );

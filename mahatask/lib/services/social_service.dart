@@ -41,9 +41,9 @@ class SocialGroup {
     final rawMembers = json['members'];
     final members = rawMembers is List
         ? rawMembers
-            .whereType<Map<String, dynamic>>()
-            .map(SocialUser.fromJson)
-            .toList(growable: false)
+              .whereType<Map<String, dynamic>>()
+              .map(SocialUser.fromJson)
+              .toList(growable: false)
         : const <SocialUser>[];
     return SocialGroup(
       id: (json['id'] ?? '').toString(),
@@ -81,7 +81,10 @@ class SocialService {
     if (normalized.isEmpty) {
       throw Exception('Kode teman harus diisi.');
     }
-    await _client.post('/social/friends/request', body: <String, dynamic>{'userCode': normalized});
+    await _client.post(
+      '/social/friends/request',
+      body: <String, dynamic>{'userCode': normalized},
+    );
   }
 
   Future<List<SocialUser>> searchUsersByName(String query) async {

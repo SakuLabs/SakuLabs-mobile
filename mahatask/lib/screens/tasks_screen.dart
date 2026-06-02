@@ -206,6 +206,7 @@ class _TasksScreenState extends State<TasksScreen>
               task.dueDate != null && _sameDay(task.dueDate!, selectedDay),
         )
         .toList(growable: false);
+    daily.sort(_taskComparator);
     if (daily.isNotEmpty) return daily;
 
     final upcoming = filtered.where((task) => task.dueDate != null).toList()
@@ -623,11 +624,15 @@ class _FilterStrip extends StatelessWidget {
     required this.scale,
     required this.selected,
     required this.onSelect,
+    required this.sort,
+    required this.onSelectSort,
   });
 
   final _AgendaScale scale;
   final _TaskFilter selected;
   final ValueChanged<_TaskFilter> onSelect;
+  final _TaskSort sort;
+  final ValueChanged<_TaskSort> onSelectSort;
 
   @override
   Widget build(BuildContext context) {
@@ -645,26 +650,93 @@ class _FilterStrip extends StatelessWidget {
           ),
           _FilterChip(
             scale: scale,
-            label: 'Work',
-            icon: Icons.work_outline_rounded,
-            active: selected == _TaskFilter.work,
-            onTap: () => onSelect(_TaskFilter.work),
+            label: 'To-do',
+            icon: Icons.radio_button_unchecked_rounded,
+            active: selected == _TaskFilter.todo,
+            onTap: () => onSelect(_TaskFilter.todo),
           ),
           _FilterChip(
             scale: scale,
-            label: 'People',
-            icon: Icons.groups_2_outlined,
-            active: selected == _TaskFilter.people,
-            onTap: () => onSelect(_TaskFilter.people),
+            label: 'In Progress',
+            icon: Icons.pending_actions_rounded,
+            active: selected == _TaskFilter.inProgress,
+            onTap: () => onSelect(_TaskFilter.inProgress),
           ),
           _FilterChip(
             scale: scale,
-            label: 'Fav',
-            icon: Icons.star_border_rounded,
-            active: selected == _TaskFilter.favorite,
-            onTap: () => onSelect(_TaskFilter.favorite),
+            label: 'Completed',
+            icon: Icons.check_circle_outline_rounded,
+            active: selected == _TaskFilter.completed,
+            onTap: () => onSelect(_TaskFilter.completed),
           ),
+          _SortChip(scale: scale, sort: sort, onSelect: onSelectSort),
         ],
+      ),
+    );
+  }
+}
+
+class _SortChip extends StatelessWidget {
+  const _SortChip({
+    required this.scale,
+    required this.sort,
+    required this.onSelect,
+  });
+
+  final _AgendaScale scale;
+  final _TaskSort sort;
+  final ValueChanged<_TaskSort> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_TaskSort>(
+      onSelected: onSelect,
+      tooltip: 'Sort tasks',
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: _TaskSort.time, child: Text('Sort by time')),
+        PopupMenuItem(
+          value: _TaskSort.recommended,
+          child: Text('Recommended queue'),
+        ),
+      ],
+      child: Container(
+        height: scale.h(30),
+        padding: EdgeInsets.symmetric(horizontal: scale.x(13)),
+        decoration: BoxDecoration(
+          color: sort == _TaskSort.recommended
+              ? const Color(0xFF2386A2)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(scale.radius(18)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x18000000),
+              blurRadius: 7,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.sort_rounded,
+              color: sort == _TaskSort.recommended
+                  ? Colors.white
+                  : Colors.black,
+              size: scale.w(14),
+            ),
+            SizedBox(width: scale.x(6)),
+            Text(
+              sort == _TaskSort.recommended ? 'Queue' : 'Sort',
+              style: TextStyle(
+                color: sort == _TaskSort.recommended
+                    ? Colors.white
+                    : Colors.black,
+                fontSize: scale.font(12),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
