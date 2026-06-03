@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/auth_provider.dart';
-import '../services/session_store.dart';
-import '../services/theme_provider.dart';
-import '../services/unread_provider.dart';
+import 'package:mahatask/services/auth_provider.dart';
+import 'package:mahatask/services/session_store.dart';
+import 'package:mahatask/services/theme_provider.dart';
+import 'package:mahatask/services/unread_provider.dart';
 
 enum _SettingsSection { profile, account, appearance, notifications }
 
@@ -91,7 +91,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: active ? (isDark ? Colors.white10 : scheme.primary.withOpacity(0.1)) : Colors.transparent,
+        color: active ? (isDark ? Colors.white10 : scheme.primary.withValues(alpha: 0.1)) : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
       ),
@@ -110,7 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent.withOpacity(0.2),
+                  color: Colors.redAccent.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -193,7 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Text('Account Settings', style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w700, fontSize: 18)),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: 'English',
+          initialValue: 'English',
           dropdownColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           style: TextStyle(color: scheme.onSurface),
           decoration: _inputDecoration('Language', scheme, muted, isDark),
@@ -209,8 +209,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
-            color: Colors.redAccent.withOpacity(0.08),
+            border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+            color: Colors.redAccent.withValues(alpha: 0.08),
           ),
           child: Text(
             'Danger Zone: Delete account is irreversible.',
@@ -269,7 +269,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: active ? (isDark ? Colors.white12 : scheme.primary.withOpacity(0.12)) : (isDark ? Colors.white10 : Colors.black.withOpacity(0.03)),
+          color: active ? (isDark ? Colors.white12 : scheme.primary.withValues(alpha: 0.12)) : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03)),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: active ? scheme.primary : (isDark ? Colors.white10 : Colors.black12)),
         ),
@@ -338,7 +338,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white10 : Colors.black.withOpacity(0.03),
+        color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -363,7 +363,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       hintText: hint,
       hintStyle: TextStyle(color: muted),
       filled: true,
-      fillColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.03),
+      fillColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide.none,
@@ -379,3 +379,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+

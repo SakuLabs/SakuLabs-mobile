@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../services/auth_provider.dart';
-import '../widgets/onboarding/onboarding_playful_effects.dart';
-import 'login_screen.dart';
-import 'onboarding/landing_page_one_screen.dart';
-import 'onboarding/landing_page_three_screen.dart';
-import 'onboarding/landing_page_two_screen.dart';
-import 'register_screen.dart';
+import 'package:mahatask/services/auth_provider.dart';
+import 'package:mahatask/widgets/onboarding/onboarding_playful_effects.dart';
+import 'package:mahatask/screens/auth/login_screen.dart';
+import 'package:mahatask/screens/auth/register_screen.dart';
+import 'package:mahatask/screens/onboarding/landing_page_one_screen.dart';
+import 'package:mahatask/screens/onboarding/landing_page_three_screen.dart';
+import 'package:mahatask/screens/onboarding/landing_page_two_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -167,3 +167,4 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     return RepaintBoundary(child: page);
   }
 }
+

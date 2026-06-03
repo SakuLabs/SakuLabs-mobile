@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/onboarding/onboarding_controls.dart';
-import '../../widgets/onboarding/onboarding_layout.dart';
-import '../../widgets/onboarding/onboarding_text.dart';
-import '../../widgets/onboarding/onboarding_visuals.dart';
+import 'package:mahatask/widgets/onboarding/onboarding_controls.dart';
+import 'package:mahatask/widgets/onboarding/onboarding_layout.dart';
+import 'package:mahatask/widgets/onboarding/onboarding_text.dart';
+import 'package:mahatask/widgets/onboarding/onboarding_visuals.dart';
 
 class LandingPageThreeScreen extends StatelessWidget {
   const LandingPageThreeScreen({

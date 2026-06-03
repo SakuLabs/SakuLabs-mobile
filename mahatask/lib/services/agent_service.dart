@@ -14,6 +14,40 @@ class AgentChatResult {
   }
 }
 
+class AgentConversation {
+  const AgentConversation({
+    required this.id,
+    required this.title,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String title;
+  final DateTime? updatedAt;
+
+  factory AgentConversation.fromJson(Map<String, dynamic> json) {
+    return AgentConversation(
+      id: (json['id'] ?? '').toString(),
+      title: (json['title'] ?? 'Percakapan Saku AI').toString(),
+      updatedAt: DateTime.tryParse((json['updatedAt'] ?? '').toString()),
+    );
+  }
+}
+
+class AgentMessage {
+  const AgentMessage({required this.role, required this.content});
+
+  final String role;
+  final String content;
+
+  factory AgentMessage.fromJson(Map<String, dynamic> json) {
+    return AgentMessage(
+      role: (json['role'] ?? '').toString(),
+      content: (json['content'] ?? '').toString(),
+    );
+  }
+}
+
 class AgentService {
   AgentService({ApiClient? client}) : _client = client ?? ApiClient();
 
@@ -38,5 +72,25 @@ class AgentService {
       conversationId: '',
       reply: 'Saya belum bisa memproses balasan dari server.',
     );
+  }
+
+  Future<List<AgentConversation>> fetchConversations() async {
+    final data = await _client.get('/agent/conversations');
+    if (data is! List) return const <AgentConversation>[];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(AgentConversation.fromJson)
+        .where((conversation) => conversation.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<AgentMessage>> fetchMessages(String conversationId) async {
+    final data = await _client.get('/agent/conversations/$conversationId/messages');
+    if (data is! List) return const <AgentMessage>[];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(AgentMessage.fromJson)
+        .where((message) => message.content.trim().isNotEmpty)
+        .toList(growable: false);
   }
 }

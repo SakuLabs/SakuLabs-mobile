@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/auth_provider.dart';
-import '../services/task_service.dart';
+import 'package:mahatask/services/auth_provider.dart';
+import 'package:mahatask/services/task_service.dart';
 
 enum _TaskFilter { all, todo, inProgress, completed }
 
@@ -143,7 +143,7 @@ class _TasksScreenState extends State<TasksScreen>
       builder: (context) {
         return _CalendarDialog(
           selectedDay: _currentSelectedDay,
-          tasks: _tasks,
+          taskDateKeys: _taskDateKeys(_tasks),
           onSelect: (day) {
             setState(() => _selectedDay = day);
             Navigator.pop(context);
@@ -158,10 +158,13 @@ class _TasksScreenState extends State<TasksScreen>
     super.build(context);
     final selectedDay = _currentSelectedDay;
     final filter = _currentFilter;
+    final allTasks = _tasks;
     final body = _TaskAgendaBody(
       isLoading: _isLoading,
       error: _error,
       tasks: _visibleTasks(),
+      taskDateKeys: _taskDateKeys(allTasks),
+      groupsById: _groupsById(_groups),
       selectedDay: selectedDay,
       filter: filter,
       expandedTaskIds: _expandedTaskIds,
@@ -252,6 +255,17 @@ class _TasksScreenState extends State<TasksScreen>
   static bool _sameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
+
+  static Set<int> _taskDateKeys(List<TaskItem> tasks) {
+    return tasks
+        .where((task) => task.dueDate != null)
+        .map((task) => _dateKey(task.dueDate!))
+        .toSet();
+  }
+
+  static Map<String, GroupOption> _groupsById(List<GroupOption> groups) {
+    return {for (final group in groups) group.id: group};
+  }
 }
 
 class _TaskAgendaBody extends StatelessWidget {
@@ -259,6 +273,8 @@ class _TaskAgendaBody extends StatelessWidget {
     required this.isLoading,
     required this.error,
     required this.tasks,
+    required this.taskDateKeys,
+    required this.groupsById,
     required this.selectedDay,
     required this.filter,
     required this.expandedTaskIds,
@@ -277,6 +293,8 @@ class _TaskAgendaBody extends StatelessWidget {
   final bool isLoading;
   final String? error;
   final List<TaskItem> tasks;
+  final Set<int> taskDateKeys;
+  final Map<String, GroupOption> groupsById;
   final DateTime selectedDay;
   final _TaskFilter filter;
   final Set<String> expandedTaskIds;
@@ -340,6 +358,7 @@ class _TaskAgendaBody extends StatelessWidget {
                 _WeekStrip(
                   scale: scale,
                   selectedDay: selectedDay,
+                  taskDateKeys: taskDateKeys,
                   onSelectDay: onSelectDay,
                 ),
                 SizedBox(height: scale.h(12)),
@@ -380,6 +399,7 @@ class _TaskAgendaBody extends StatelessWidget {
                       child: _AgendaTaskCard(
                         scale: scale,
                         task: task,
+                        groupsById: groupsById,
                         expanded: expandedTaskIds.contains(task.id),
                         onToggleExpanded: () => onToggleExpanded(task),
                         onStatusChanged: (status) =>
@@ -537,11 +557,13 @@ class _WeekStrip extends StatelessWidget {
   const _WeekStrip({
     required this.scale,
     required this.selectedDay,
+    required this.taskDateKeys,
     required this.onSelectDay,
   });
 
   final _AgendaScale scale;
   final DateTime selectedDay;
+  final Set<int> taskDateKeys;
   final ValueChanged<DateTime> onSelectDay;
 
   @override
@@ -554,13 +576,17 @@ class _WeekStrip extends StatelessWidget {
       children: days
           .map((day) {
             final active = _sameDay(day, selectedDay);
+            final hasTask = taskDateKeys.contains(_dateKey(day));
             final weekday = labels[day.weekday % 7];
             return Expanded(
               child: GestureDetector(
                 onTap: () => onSelectDay(day),
-                child: Container(
-                  height: scale.h(65),
-                  margin: EdgeInsets.symmetric(horizontal: scale.x(3)),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  height: active ? scale.h(76) : scale.h(65),
+                  margin: EdgeInsets.symmetric(
+                    horizontal: scale.x(active ? 1.5 : 3),
+                  ),
                   decoration: BoxDecoration(
                     color: active
                         ? Colors.white
@@ -588,24 +614,47 @@ class _WeekStrip extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: scale.h(8)),
-                      Container(
-                        width: scale.w(30),
-                        height: scale.w(30),
-                        decoration: BoxDecoration(
-                          color: active
-                              ? Colors.black
-                              : const Color(0xFFE8E8E8),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: active ? Colors.white : Colors.black,
-                              fontSize: scale.font(10),
-                              fontWeight: FontWeight.w900,
+                      SizedBox(
+                        width: scale.w(active ? 40 : 32),
+                        height: scale.w(active ? 40 : 32),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: scale.w(active ? 38 : 30),
+                              height: scale.w(active ? 38 : 30),
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? Colors.black
+                                    : const Color(0xFFE8E8E8),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${day.day}',
+                                  style: TextStyle(
+                                    color: active
+                                        ? Colors.white
+                                        : Colors.black,
+                                    fontSize: scale.font(active ? 12 : 10),
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            if (hasTask)
+                              Positioned(
+                                bottom: scale.h(active ? 0 : 2),
+                                child: Container(
+                                  width: scale.w(active ? 7 : 5),
+                                  height: scale.w(active ? 7 : 5),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFF5D5D),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
@@ -807,6 +856,7 @@ class _AgendaTaskCard extends StatelessWidget {
   const _AgendaTaskCard({
     required this.scale,
     required this.task,
+    required this.groupsById,
     required this.expanded,
     required this.onToggleExpanded,
     required this.onStatusChanged,
@@ -815,6 +865,7 @@ class _AgendaTaskCard extends StatelessWidget {
 
   final _AgendaScale scale;
   final TaskItem task;
+  final Map<String, GroupOption> groupsById;
   final bool expanded;
   final VoidCallback onToggleExpanded;
   final ValueChanged<String> onStatusChanged;
@@ -824,6 +875,13 @@ class _AgendaTaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasDescription = task.description.trim().isNotEmpty;
     final due = task.dueDate ?? DateTime.now();
+    final group = _groupForTask(task, groupsById);
+    final memberNames = group?.members
+            .map((member) => member.name)
+            .where((name) => name.trim().isNotEmpty)
+            .take(3)
+            .join(', ') ??
+        '';
 
     return Container(
       width: double.infinity,
@@ -946,6 +1004,14 @@ class _AgendaTaskCard extends StatelessWidget {
               ),
             ),
           ],
+          if (expanded && group != null) ...[
+            SizedBox(height: scale.h(9)),
+            _TaskGroupInfo(
+              scale: scale,
+              groupName: group.name,
+              memberNames: memberNames.isEmpty ? 'Belum ada member' : memberNames,
+            ),
+          ],
           SizedBox(height: expanded ? scale.h(17) : scale.h(14)),
           Row(
             children: [
@@ -989,6 +1055,60 @@ class _DoneTaskButton extends StatelessWidget {
           color: Colors.white,
           size: scale.w(18),
         ),
+      ),
+    );
+  }
+}
+
+class _TaskGroupInfo extends StatelessWidget {
+  const _TaskGroupInfo({
+    required this.scale,
+    required this.groupName,
+    required this.memberNames,
+  });
+
+  final _AgendaScale scale;
+  final String groupName;
+  final String memberNames;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: scale.x(10),
+        vertical: scale.h(8),
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F7FB),
+        borderRadius: BorderRadius.circular(scale.radius(12)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Group: $groupName',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: scale.font(8.5),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: scale.h(3)),
+          Text(
+            'Members: $memberNames',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: const Color(0xFF64748B),
+              fontSize: scale.font(7.5),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1114,12 +1234,12 @@ class _MiniAvatars extends StatelessWidget {
 class _CalendarDialog extends StatelessWidget {
   const _CalendarDialog({
     required this.selectedDay,
-    required this.tasks,
+    required this.taskDateKeys,
     required this.onSelect,
   });
 
   final DateTime selectedDay;
-  final List<TaskItem> tasks;
+  final Set<int> taskDateKeys;
   final ValueChanged<DateTime> onSelect;
 
   @override
@@ -1226,21 +1346,22 @@ class _CalendarDialog extends StatelessWidget {
                                     dayNum,
                                   );
                                   final active = _sameDay(date, selectedDay);
-                                  final hasTask = tasks.any(
-                                    (task) =>
-                                        task.dueDate != null &&
-                                        _sameDay(task.dueDate!, date),
+                                  final hasTask = taskDateKeys.contains(
+                                    _dateKey(date),
                                   );
                                   return GestureDetector(
                                     onTap: () => onSelect(date),
                                     child: SizedBox(
-                                      height: scale.h(34),
+                                      height: scale.h(active ? 42 : 34),
                                       child: Stack(
                                         alignment: Alignment.center,
                                         children: [
-                                          Container(
-                                            width: scale.w(34),
-                                            height: scale.w(34),
+                                          AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 180,
+                                            ),
+                                            width: scale.w(active ? 40 : 34),
+                                            height: scale.w(active ? 40 : 34),
                                             decoration: BoxDecoration(
                                               color: active
                                                   ? Colors.black
@@ -1264,10 +1385,10 @@ class _CalendarDialog extends StatelessWidget {
                                             Positioned(
                                               bottom: scale.h(3),
                                               child: Container(
-                                                width: scale.w(4),
-                                                height: scale.w(4),
+                                                width: scale.w(active ? 6 : 4),
+                                                height: scale.w(active ? 6 : 4),
                                                 decoration: const BoxDecoration(
-                                                  color: Color(0xFF60CF67),
+                                                  color: Color(0xFFFF5D5D),
                                                   shape: BoxShape.circle,
                                                 ),
                                               ),
@@ -1339,6 +1460,8 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   var _priority = TaskPriority.high;
+  var _scope = TaskScope.personal;
+  String? _selectedGroupId;
   late DateTime _startDate;
   late DateTime _deadline;
   String? _error;
@@ -1375,7 +1498,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
       builder: (context) {
         return _CalendarDialog(
           selectedDay: current,
-          tasks: const <TaskItem>[],
+          taskDateKeys: const <int>{},
           onSelect: (day) {
             picked = day;
             Navigator.pop(context);
@@ -1400,6 +1523,31 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
     });
   }
 
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_deadline),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: Colors.black),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked == null) return;
+    setState(() {
+      _deadline = DateTime(
+        _deadline.year,
+        _deadline.month,
+        _deadline.day,
+        picked.hour,
+        picked.minute,
+      );
+    });
+  }
+
   Future<void> _submit() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -1408,6 +1556,11 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
     }
     if (_deadline.isBefore(_startDate)) {
       setState(() => _error = 'Deadline harus setelah start date.');
+      return;
+    }
+    if (_scope == TaskScope.group &&
+        (_selectedGroupId == null || _selectedGroupId!.isEmpty)) {
+      setState(() => _error = 'Pilih group untuk group task.');
       return;
     }
 
@@ -1420,7 +1573,8 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
         title: title,
         description: _descriptionController.text.trim(),
         priority: _priority,
-        scope: TaskScope.personal,
+        scope: _scope,
+        groupId: _selectedGroupId,
         startDate: _startDate,
         dueDate: _deadline,
       );
@@ -1435,6 +1589,15 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
     }
   }
 
+  GroupOption? get _selectedGroup {
+    final id = _selectedGroupId;
+    if (id == null) return null;
+    for (final group in widget.groups) {
+      if (group.id == id) return group;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
@@ -1446,7 +1609,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
         child: ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: media.size.width * 0.9,
-            maxHeight: media.size.height * 0.78,
+            maxHeight: media.size.height * 0.82,
           ),
           child: Material(
             color: Colors.white,
@@ -1456,7 +1619,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
             clipBehavior: Clip.antiAlias,
             child: SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 22),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1480,9 +1643,9 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                   _SheetField(
-                    label: 'Title',
+                    label: 'Task Title',
                     child: TextField(
                       controller: _titleController,
                       decoration: _inputDecoration('Project Assignment'),
@@ -1492,62 +1655,134 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                     label: 'Description',
                     child: TextField(
                       controller: _descriptionController,
-                      minLines: 3,
-                      maxLines: 5,
-                      decoration: _inputDecoration('Apa saja isi tugasnya?'),
+                      minLines: 4,
+                      maxLines: 6,
+                      decoration: _inputDecoration(
+                        'Pbfbabwfboauwbfbabfobabfasbfubasofbasbuasbfuoabsfasoutbasbdfbasoutbasbfasbfoasobfas',
+                      ),
                     ),
                   ),
+                  const Text(
+                    'Due Date & Time',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: _DateButton(
-                          label: 'Start',
-                          value: _dateLabel(_startDate),
-                          onTap: () => _pickDate(deadline: false),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _DateButton(
-                          label: 'Deadline',
+                        child: _PickerButton(
+                          icon: Icons.calendar_today_outlined,
                           value: _dateLabel(_deadline),
                           onTap: () => _pickDate(deadline: true),
                         ),
                       ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _PickerButton(
+                          icon: Icons.alarm_rounded,
+                          value: _timeLabel(_deadline),
+                          onTap: _pickTime,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<TaskPriority>(
-                    initialValue: _priority,
-                    decoration: _inputDecoration('Important Level'),
-                    dropdownColor: Colors.white,
-                    style: const TextStyle(
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Priority',
+                    style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w800,
                     ),
-                    selectedItemBuilder: (context) => const [
-                      Text('Low Important'),
-                      Text('Medium Important'),
-                      Text('High Important'),
-                    ],
-                    items: const [
-                      DropdownMenuItem(
-                        value: TaskPriority.low,
-                        child: Text('Low Important'),
-                      ),
-                      DropdownMenuItem(
-                        value: TaskPriority.medium,
-                        child: Text('Medium Important'),
-                      ),
-                      DropdownMenuItem(
-                        value: TaskPriority.high,
-                        child: Text('High Important'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) setState(() => _priority = value);
-                    },
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _PriorityChoice(
+                          label: 'Low',
+                          active: _priority == TaskPriority.low,
+                          onTap: () =>
+                              setState(() => _priority = TaskPriority.low),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _PriorityChoice(
+                          label: 'Medium',
+                          active: _priority == TaskPriority.medium,
+                          onTap: () =>
+                              setState(() => _priority = TaskPriority.medium),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _PriorityChoice(
+                          label: 'High',
+                          active: _priority == TaskPriority.high,
+                          onTap: () =>
+                              setState(() => _priority = TaskPriority.high),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Task For',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ScopeChoice(
+                          label: 'Personal',
+                          active: _scope == TaskScope.personal,
+                          onTap: () => setState(() {
+                            _scope = TaskScope.personal;
+                            _selectedGroupId = null;
+                          }),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ScopeChoice(
+                          label: 'Group',
+                          active: _scope == TaskScope.group,
+                          onTap: () => setState(() {
+                            _scope = TaskScope.group;
+                            _selectedGroupId ??= widget.groups.isNotEmpty
+                                ? widget.groups.first.id
+                                : null;
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_scope == TaskScope.group) ...[
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedGroupId,
+                      decoration: _inputDecoration('Choose group'),
+                      items: widget.groups
+                          .map(
+                            (group) => DropdownMenuItem(
+                              value: group.id,
+                              child: Text(group.name),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) =>
+                          setState(() => _selectedGroupId = value),
+                    ),
+                    const SizedBox(height: 8),
+                    _GroupMembersPreview(group: _selectedGroup),
+                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 6),
                     Text(
@@ -1621,7 +1856,28 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
   }
 
   String _dateLabel(DateTime value) {
-    return '${value.day}/${value.month}/${value.year}';
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[value.month - 1]} ${value.day}, ${value.year}';
+  }
+
+  String _timeLabel(DateTime value) {
+    final hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
+    final minute = value.minute.toString().padLeft(2, '0');
+    final period = value.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 }
 
@@ -1653,14 +1909,121 @@ class _SheetField extends StatelessWidget {
   }
 }
 
-class _DateButton extends StatelessWidget {
-  const _DateButton({
+class _PriorityChoice extends StatelessWidget {
+  const _PriorityChoice({
     required this.label,
-    required this.value,
+    required this.active,
     required this.onTap,
   });
 
   final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 42,
+        decoration: BoxDecoration(
+          color: active ? Colors.black : const Color(0xFFE9E9E9),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.white : const Color(0xFF6B7280),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScopeChoice extends StatelessWidget {
+  const _ScopeChoice({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 42,
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF60CF67) : const Color(0xFFE9E9E9),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.black : const Color(0xFF6B7280),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupMembersPreview extends StatelessWidget {
+  const _GroupMembersPreview({required this.group});
+
+  final GroupOption? group;
+
+  @override
+  Widget build(BuildContext context) {
+    final members = group?.members ?? const <GroupMemberOption>[];
+    final text = members.isEmpty
+        ? 'Members: belum ada data member'
+        : 'Members: ${members.map((member) => member.name).take(4).join(', ')}';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F7FB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Color(0xFF64748B),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _PickerButton extends StatelessWidget {
+  const _PickerButton({
+    required this.icon,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
   final String value;
   final VoidCallback onTap;
 
@@ -1669,29 +2032,26 @@ class _DateButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        height: 45,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFD1D9E6)),
+          color: const Color(0xFFE9E9E9),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w800,
+            Icon(icon, size: 17, color: const Color(0xFF64748B)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
@@ -1853,6 +2213,10 @@ bool _sameDay(DateTime a, DateTime b) {
   return a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
+int _dateKey(DateTime value) {
+  return value.year * 10000 + value.month * 100 + value.day;
+}
+
 String _monthName(int month) {
   const months = [
     'January',
@@ -1870,3 +2234,13 @@ String _monthName(int month) {
   ];
   return months[month - 1];
 }
+
+GroupOption? _groupForTask(
+  TaskItem task,
+  Map<String, GroupOption> groupsById,
+) {
+  final groupId = task.groupId;
+  if (groupId == null || groupId.isEmpty) return null;
+  return groupsById[groupId];
+}
+

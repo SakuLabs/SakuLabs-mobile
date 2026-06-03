@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../services/session_store.dart';
-import '../services/social_service.dart';
+import 'package:mahatask/services/session_store.dart';
+import 'package:mahatask/services/social_service.dart';
 
 class AddFriendScreen extends StatelessWidget {
   const AddFriendScreen({super.key});
@@ -444,3 +444,4 @@ String _requestSenderName(dynamic request) {
   }
   return 'Unknown user';
 }
+

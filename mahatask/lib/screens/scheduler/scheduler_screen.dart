@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../services/scheduler_service.dart';
-import '../services/task_service.dart';
+import 'package:mahatask/services/scheduler_service.dart';
+import 'package:mahatask/services/task_service.dart';
 
 class SchedulerScreen extends StatefulWidget {
   const SchedulerScreen({super.key, this.embedded = false});
@@ -225,7 +225,7 @@ class _SchedulerScreenState extends State<SchedulerScreen>
                               color: selected
                                   ? Theme.of(
                                       context,
-                                    ).colorScheme.primary.withOpacity(0.2)
+                                    ).colorScheme.primary.withValues(alpha: 0.2)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -411,7 +411,7 @@ class _SchedulerScreenState extends State<SchedulerScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.1),
+        color: Colors.redAccent.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -453,3 +453,4 @@ class _SchedulerScreenState extends State<SchedulerScreen>
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
+

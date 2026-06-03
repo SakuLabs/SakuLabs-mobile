@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/auth_provider.dart';
-import '../services/navigation_provider.dart';
-import '../widgets/auth/auth_card.dart';
-import '../widgets/auth/auth_layout.dart';
-import '../widgets/auth/auth_validators.dart';
-import 'dashboard_screen.dart';
-import 'login_screen.dart';
+import 'package:mahatask/services/auth_provider.dart';
+import 'package:mahatask/services/navigation_provider.dart';
+import 'package:mahatask/widgets/auth/auth_card.dart';
+import 'package:mahatask/widgets/auth/auth_layout.dart';
+import 'package:mahatask/widgets/auth/auth_validators.dart';
+import 'package:mahatask/screens/dashboard/dashboard_screen.dart';
+import 'package:mahatask/screens/auth/login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -200,3 +200,4 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
+

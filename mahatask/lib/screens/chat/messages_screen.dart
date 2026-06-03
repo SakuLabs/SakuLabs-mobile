@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/auth_provider.dart';
-import '../services/social_service.dart';
-import '../services/unread_provider.dart';
-import 'add_friend_screen.dart';
-import 'chat_detail_screen.dart';
+import 'package:mahatask/services/auth_provider.dart';
+import 'package:mahatask/services/social_service.dart';
+import 'package:mahatask/services/unread_provider.dart';
+import 'package:mahatask/screens/social/add_friend_screen.dart';
+import 'package:mahatask/screens/chat/chat_detail_screen.dart';
 
 enum _MessageTab { group, direct }
 
@@ -726,3 +726,4 @@ class _ChatScale {
   double font(double value) => value * width / 393;
   double radius(double value) => value * width / 393;
 }
+

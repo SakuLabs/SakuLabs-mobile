@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../services/chat_service.dart';
-import '../services/session_store.dart';
-import 'video_call_screen.dart';
+import 'package:mahatask/services/chat_service.dart';
+import 'package:mahatask/services/session_store.dart';
+import 'package:mahatask/screens/call/video_call_screen.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   const ChatDetailScreen({
@@ -624,3 +624,4 @@ class _BubbleScale {
   double font(double value) => value * width / 393;
   double radius(double value) => value * width / 393;
 }
+

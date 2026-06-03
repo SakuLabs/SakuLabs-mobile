@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'screens/dashboard_screen.dart';
-import 'screens/welcome_screen.dart';
-import 'services/auth_provider.dart';
-import 'services/navigation_provider.dart';
-import 'services/theme_provider.dart';
-import 'services/unread_provider.dart';
-import 'theme/app_theme.dart';
+import 'package:mahatask/screens/dashboard/dashboard_screen.dart';
+import 'package:mahatask/screens/onboarding/welcome_screen.dart';
+import 'package:mahatask/services/auth_provider.dart';
+import 'package:mahatask/services/navigation_provider.dart';
+import 'package:mahatask/services/theme_provider.dart';
+import 'package:mahatask/services/unread_provider.dart';
+import 'package:mahatask/theme/app_theme.dart';
 
 void main() {
   runApp(const MahaTaskApp());

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/video_call_service.dart';
+import 'package:mahatask/services/video_call_service.dart';
 
 class VideoCallScreen extends StatefulWidget {
   const VideoCallScreen({super.key, required this.roomId, required this.title});
@@ -55,8 +55,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: _videoCallService.isConnected
-                      ? const Color(0xFF22C55E).withOpacity(0.2)
-                      : Colors.orange.withOpacity(0.2),
+                      ? const Color(0xFF22C55E).withValues(alpha: 0.2)
+                      : Colors.orange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Icon(
@@ -80,7 +80,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
                 margin: const EdgeInsets.all(10),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent.withOpacity(0.12),
+                  color: Colors.redAccent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -201,3 +201,4 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     );
   }
 }
+

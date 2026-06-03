@@ -5,15 +5,41 @@ enum TaskScope { personal, group }
 enum TaskPriority { low, medium, high }
 
 class GroupOption {
-  const GroupOption({required this.id, required this.name});
+  const GroupOption({
+    required this.id,
+    required this.name,
+    this.members = const <GroupMemberOption>[],
+  });
+
+  final String id;
+  final String name;
+  final List<GroupMemberOption> members;
+
+  factory GroupOption.fromJson(Map<String, dynamic> json) {
+    final rawMembers = json['members'];
+    return GroupOption(
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      members: rawMembers is List
+          ? rawMembers
+                .whereType<Map<String, dynamic>>()
+                .map(GroupMemberOption.fromJson)
+                .toList(growable: false)
+          : const <GroupMemberOption>[],
+    );
+  }
+}
+
+class GroupMemberOption {
+  const GroupMemberOption({required this.id, required this.name});
 
   final String id;
   final String name;
 
-  factory GroupOption.fromJson(Map<String, dynamic> json) {
-    return GroupOption(
+  factory GroupMemberOption.fromJson(Map<String, dynamic> json) {
+    return GroupMemberOption(
       id: (json['id'] ?? '').toString(),
-      name: (json['name'] ?? '').toString(),
+      name: (json['name'] ?? json['email'] ?? '').toString(),
     );
   }
 }
@@ -142,6 +168,9 @@ class TaskService {
     }
     if (progress != null) {
       payload['progress'] = progress.clamp(0, 100);
+    }
+    if (scope == TaskScope.group && groupId != null && groupId.isNotEmpty) {
+      payload['groupId'] = groupId;
     }
 
     final result = await _client.post('/tasks', body: payload);

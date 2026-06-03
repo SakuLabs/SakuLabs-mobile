@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/auth_provider.dart';
-import '../services/navigation_provider.dart';
-import '../services/task_service.dart';
-import '../services/unread_provider.dart';
-import '../widgets/dashboard/bottom_nav_bar.dart';
-import '../widgets/dashboard/saku_ai_chat_popup.dart';
-import 'messages_screen.dart';
-import 'tasks_screen.dart';
+import 'package:mahatask/services/auth_provider.dart';
+import 'package:mahatask/services/navigation_provider.dart';
+import 'package:mahatask/services/task_service.dart';
+import 'package:mahatask/services/unread_provider.dart';
+import 'package:mahatask/widgets/dashboard/bottom_nav_bar.dart';
+import 'package:mahatask/widgets/dashboard/saku_ai_chat_popup.dart';
+import 'package:mahatask/screens/chat/messages_screen.dart';
+import 'package:mahatask/screens/tasks/tasks_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -983,117 +983,6 @@ class _ProgressRingPainter extends CustomPainter {
   }
 }
 
-// ignore: unused_element
-class _UnusedSakuAiHome extends StatelessWidget {
-  const _UnusedSakuAiHome();
-
-  @override
-  Widget build(BuildContext context) {
-    final topInset = MediaQuery.paddingOf(context).top;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final height = constraints.maxHeight;
-        final scale = _DashScale(width: width, height: height);
-        final sidePadding = width * 0.07;
-        final topPadding = topInset + height * 0.052;
-        final bottomPadding = height * 0.14;
-
-        return Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFA8CBFF), Color(0xFFD8F0FF), Color(0xFFD9C2FF)],
-              stops: [0, 0.62, 1],
-            ),
-          ),
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              sidePadding,
-              topPadding,
-              sidePadding,
-              bottomPadding,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _HeaderRow(
-                  scale: scale,
-                  displayName:
-                      context.watch<AuthProvider>().user?.name ?? 'Name',
-                  onAdd: () => context.read<NavigationProvider>().setIndex(1),
-                ),
-                SizedBox(height: scale.y(28)),
-                Text(
-                  'SakuAI',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: scale.font(30),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: scale.y(8)),
-                Text(
-                  'Ask for study plans, task summaries, or schedule ideas.',
-                  style: TextStyle(
-                    color: const Color(0xFF5E7A83),
-                    fontSize: scale.font(13),
-                    height: 1.25,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: scale.y(24)),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(scale.x(18)),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.94),
-                    borderRadius: BorderRadius.circular(scale.radius(18)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x14000000),
-                        blurRadius: 14,
-                        offset: Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Today’s prompt',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: scale.font(16),
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      SizedBox(height: scale.y(10)),
-                      Text(
-                        'Help me organize my highest priority tasks for this week.',
-                        style: TextStyle(
-                          color: const Color(0xFF5E7A83),
-                          fontSize: scale.font(13),
-                          height: 1.3,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 class _DashScale {
   const _DashScale({required this.width, required this.height});
 
@@ -1123,3 +1012,4 @@ String _priorityLabel(String value) {
   if (text == 'HIGH') return 'High';
   return 'Medium';
 }
+
