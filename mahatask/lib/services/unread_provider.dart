@@ -12,13 +12,16 @@ class UnreadProvider extends ChangeNotifier {
 
   Timer? _timer;
   Map<String, int> _directUnreadByUser = const <String, int>{};
+  Map<String, int> _groupUnreadById = const <String, int>{};
   bool _loading = false;
   bool _active = false;
 
   Map<String, int> get directUnreadByUser => _directUnreadByUser;
+  Map<String, int> get groupUnreadById => _groupUnreadById;
   bool get isLoading => _loading;
   int get totalUnread =>
-      _directUnreadByUser.values.fold<int>(0, (a, b) => a + b);
+      _directUnreadByUser.values.fold<int>(0, (a, b) => a + b) +
+      _groupUnreadById.values.fold<int>(0, (a, b) => a + b);
 
   void start() {
     if (_active) return;
@@ -43,8 +46,21 @@ class UnreadProvider extends ChangeNotifier {
     try {
       final counts = await _chatService.getDirectUnreadCounts();
       if (!_active) return;
-      if (!_isSameMap(_directUnreadByUser, counts)) {
-        _directUnreadByUser = counts;
+      final direct = <String, int>{};
+      final groups = <String, int>{};
+      for (final entry in counts.entries) {
+        if (entry.key.startsWith('dm:')) {
+          direct[entry.key.substring(3)] = entry.value;
+        } else if (entry.key.startsWith('group:')) {
+          groups[entry.key.substring(6)] = entry.value;
+        } else {
+          direct[entry.key] = entry.value;
+        }
+      }
+      if (!_isSameMap(_directUnreadByUser, direct) ||
+          !_isSameMap(_groupUnreadById, groups)) {
+        _directUnreadByUser = direct;
+        _groupUnreadById = groups;
       }
     } catch (_) {
       // Keep last known unread counts if refresh fails.
@@ -56,6 +72,7 @@ class UnreadProvider extends ChangeNotifier {
 
   void clear() {
     _directUnreadByUser = const <String, int>{};
+    _groupUnreadById = const <String, int>{};
     notifyListeners();
   }
 

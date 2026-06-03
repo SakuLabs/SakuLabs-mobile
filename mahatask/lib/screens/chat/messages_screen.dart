@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:mahatask/services/auth_provider.dart';
 import 'package:mahatask/services/social_service.dart';
+import 'package:mahatask/services/task_service.dart';
 import 'package:mahatask/services/unread_provider.dart';
 import 'package:mahatask/screens/social/add_friend_screen.dart';
 import 'package:mahatask/screens/chat/chat_detail_screen.dart';
@@ -21,12 +22,17 @@ class MessagesScreen extends StatefulWidget {
 class _MessagesScreenState extends State<MessagesScreen>
     with AutomaticKeepAliveClientMixin {
   final SocialService _socialService = SocialService();
+  final TaskService _taskService = TaskService();
+  final TextEditingController _searchController = TextEditingController();
 
   _MessageTab _tab = _MessageTab.direct;
   bool _loading = true;
   String? _error;
+  String _query = '';
   List<SocialGroup> _groups = const <SocialGroup>[];
   List<SocialUser> _friends = const <SocialUser>[];
+  List<dynamic> _friendRequests = const <dynamic>[];
+  List<TaskItem> _groupTasks = const <TaskItem>[];
 
   @override
   bool get wantKeepAlive => true;
@@ -35,6 +41,15 @@ class _MessagesScreenState extends State<MessagesScreen>
   void initState() {
     super.initState();
     _load();
+    _searchController.addListener(() {
+      setState(() => _query = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -46,11 +61,17 @@ class _MessagesScreenState extends State<MessagesScreen>
       final data = await Future.wait<dynamic>([
         _socialService.getGroups(),
         _socialService.getFriends(),
+        _socialService.getFriendRequests(),
+        _taskService.fetchTasks(),
       ]);
       if (!mounted) return;
       setState(() {
         _groups = data[0] as List<SocialGroup>;
         _friends = data[1] as List<SocialUser>;
+        _friendRequests = data[2] as List<dynamic>;
+        _groupTasks = (data[3] as List<TaskItem>)
+            .where((task) => task.isGroupTask)
+            .toList(growable: false);
       });
       await context.read<UnreadProvider>().refresh();
     } catch (error) {
@@ -70,6 +91,23 @@ class _MessagesScreenState extends State<MessagesScreen>
     if (changed == true) await _load();
   }
 
+  Future<void> _openFriendRequests() async {
+    final changed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.42),
+      builder: (_) => _FriendRequestDialog(requests: _friendRequests),
+    );
+    if (changed == true) await _load();
+  }
+
+  void _openCallLog() {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.42),
+      builder: (_) => const _CallLogDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -79,8 +117,14 @@ class _MessagesScreenState extends State<MessagesScreen>
       error: _error,
       groups: _groups,
       friends: _friends,
+      friendRequests: _friendRequests,
+      groupTasks: _groupTasks,
+      searchController: _searchController,
+      query: _query,
       onReload: _load,
       onAddFriend: _openAddFriend,
+      onOpenRequests: _openFriendRequests,
+      onOpenCallLog: _openCallLog,
       onTabChanged: (tab) => setState(() => _tab = tab),
     );
 
@@ -96,8 +140,14 @@ class _MessagesBody extends StatelessWidget {
     required this.error,
     required this.groups,
     required this.friends,
+    required this.friendRequests,
+    required this.groupTasks,
+    required this.searchController,
+    required this.query,
     required this.onReload,
     required this.onAddFriend,
+    required this.onOpenRequests,
+    required this.onOpenCallLog,
     required this.onTabChanged,
   });
 
@@ -106,8 +156,14 @@ class _MessagesBody extends StatelessWidget {
   final String? error;
   final List<SocialGroup> groups;
   final List<SocialUser> friends;
+  final List<dynamic> friendRequests;
+  final List<TaskItem> groupTasks;
+  final TextEditingController searchController;
+  final String query;
   final VoidCallback onReload;
   final VoidCallback onAddFriend;
+  final VoidCallback onOpenRequests;
+  final VoidCallback onOpenCallLog;
   final ValueChanged<_MessageTab> onTabChanged;
 
   @override

@@ -37,10 +37,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void initState() {
     super.initState();
     _loadMessages();
+    _markRead();
     _polling = Timer.periodic(
       const Duration(seconds: 4),
       (_) => _loadMessages(silent: true),
     );
+  }
+
+  Future<void> _markRead() async {
+    try {
+      await _chatService.markRead(isGroup: widget.isGroup, id: widget.id);
+    } catch (_) {
+      // Non-blocking: opening chat should still work if read receipt fails.
+    }
   }
 
   @override

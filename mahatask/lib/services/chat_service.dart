@@ -73,18 +73,34 @@ class ChatService {
 
   Future<Map<String, int>> getDirectUnreadCounts() async {
     final data = await _client.get('/chat/unread');
-    if (data is! Map) return const <String, int>{};
     final counts = <String, int>{};
+    if (data is List) {
+      for (final item in data.whereType<Map<String, dynamic>>()) {
+        final key = (item['conversationKey'] ?? '').toString();
+        final value = item['count'];
+        if (key.isEmpty) continue;
+        if (value is num) {
+          counts[key] = value.toInt();
+        } else {
+          final parsed = int.tryParse(value.toString());
+          if (parsed != null) counts[key] = parsed;
+        }
+      }
+      return counts;
+    }
+    if (data is! Map) return const <String, int>{};
     data.forEach((key, value) {
       final id = key.toString();
       if (id.isEmpty) return;
-      if (value is num) {
-        counts[id] = value.toInt();
-      } else {
-        final parsed = int.tryParse(value.toString());
-        if (parsed != null) counts[id] = parsed;
-      }
+      if (value is num) counts[id] = value.toInt();
     });
     return counts;
+  }
+
+  Future<void> markRead({required bool isGroup, required String id}) async {
+    await _client.post(
+      '/chat/conversations/read',
+      body: <String, dynamic>{'type': isGroup ? 'group' : 'direct', 'id': id},
+    );
   }
 }

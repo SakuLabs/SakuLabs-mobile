@@ -645,43 +645,75 @@ class _WeekStrip extends StatelessWidget {
                                 color: active
                                     ? const Color(0xFF111827)
                                     : hasTask
-                                        ? const Color(0xFFFFF3D8)
+                                        ? Colors.white
                                         : const Color(0xFFE8E8E8),
                                 shape: BoxShape.circle,
                                 border: hasTask && !active
                                     ? Border.all(
-                                        color: const Color(0xFFFFB25A),
-                                        width: 1.4,
+                                        color: const Color(0xFFFF5D5D),
+                                        width: 1.2,
                                       )
                                     : null,
                               ),
                               child: Center(
-                                child: Text(
-                                  '${day.day}',
-                                  style: TextStyle(
-                                    color: active
-                                        ? Colors.white
-                                        : Colors.black,
-                                    fontSize: scale.font(active ? 12 : 10),
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
+                                child: active && hasTask
+                                    ? Container(
+                                        width: scale.w(24),
+                                        height: scale.w(24),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: const Color(0xFFFF5D5D),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '${day.day}',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: scale.font(11),
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : Text(
+                                        '${day.day}',
+                                        style: TextStyle(
+                                          color: active
+                                              ? Colors.white
+                                              : Colors.black,
+                                          fontSize: scale.font(active ? 12 : 10),
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
                               ),
                             ),
-                            if (hasTask)
+                            if (hasTask && !active)
                               Positioned(
-                                bottom: scale.h(active ? -1 : -2),
-                                child: Container(
-                                  width: scale.w(active ? 18 : 15),
-                                  height: scale.h(active ? 5 : 4),
-                                  decoration: BoxDecoration(
-                                    color: active
-                                        ? const Color(0xFFFFB25A)
-                                        : const Color(0xFF60CF67),
-                                    borderRadius: BorderRadius.circular(
-                                      scale.radius(999),
+                                bottom: scale.h(-1),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: scale.w(4.5),
+                                      height: scale.w(4.5),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFFF5D5D),
+                                        shape: BoxShape.circle,
+                                      ),
                                     ),
-                                  ),
+                                    SizedBox(width: scale.x(2.5)),
+                                    Container(
+                                      width: scale.w(4.5),
+                                      height: scale.w(4.5),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                           ],
@@ -715,71 +747,48 @@ class _FilterStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: scale.h(37),
-      child: Stack(
-        children: [
-          ListView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.only(right: scale.x(26)),
-            children: [
-              _FilterChip(
-                scale: scale,
-                label: 'All',
-                icon: null,
-                active: selected == _TaskFilter.all,
-                onTap: () => onSelect(_TaskFilter.all),
-              ),
-              _FilterChip(
-                scale: scale,
-                label: 'To do',
-                icon: Icons.circle_outlined,
-                active: selected == _TaskFilter.todo,
-                onTap: () => onSelect(_TaskFilter.todo),
-              ),
-              _FilterChip(
-                scale: scale,
-                label: 'Doing',
-                icon: Icons.bolt_rounded,
-                active: selected == _TaskFilter.inProgress,
-                onTap: () => onSelect(_TaskFilter.inProgress),
-              ),
-              _FilterChip(
-                scale: scale,
-                label: 'Done',
-                icon: Icons.check_circle_outline_rounded,
-                active: selected == _TaskFilter.completed,
-                onTap: () => onSelect(_TaskFilter.completed),
-              ),
-              _SortChip(scale: scale, sort: sort, onSelect: onSelectSort),
-            ],
+    return Row(
+      children: [
+        Expanded(
+          child: _FilterChip(
+            scale: scale,
+            label: 'All',
+            active: selected == _TaskFilter.all,
+            onTap: () => onSelect(_TaskFilter.all),
           ),
-          Positioned(
-            right: 0,
-            top: 2,
-            bottom: 2,
-            child: IgnorePointer(
-              child: Container(
-                width: scale.x(30),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [Color(0x00C2E9FB), Color(0xFFC2E9FB)],
-                  ),
-                ),
-                alignment: Alignment.centerRight,
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  color: Colors.black.withValues(alpha: 0.34),
-                  size: scale.w(18),
-                ),
-              ),
-            ),
+        ),
+        SizedBox(width: scale.x(6)),
+        Expanded(
+          child: _FilterChip(
+            scale: scale,
+            label: 'To do',
+            active: selected == _TaskFilter.todo,
+            onTap: () => onSelect(_TaskFilter.todo),
           ),
-        ],
-      ),
+        ),
+        SizedBox(width: scale.x(6)),
+        Expanded(
+          child: _FilterChip(
+            scale: scale,
+            label: 'Doing',
+            active: selected == _TaskFilter.inProgress,
+            onTap: () => onSelect(_TaskFilter.inProgress),
+          ),
+        ),
+        SizedBox(width: scale.x(6)),
+        Expanded(
+          child: _FilterChip(
+            scale: scale,
+            label: 'Done',
+            active: selected == _TaskFilter.completed,
+            onTap: () => onSelect(_TaskFilter.completed),
+          ),
+        ),
+        SizedBox(width: scale.x(6)),
+        Expanded(
+          child: _SortChip(scale: scale, sort: sort, onSelect: onSelectSort),
+        ),
+      ],
     );
   }
 }
@@ -797,23 +806,18 @@ class _SortChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final active = sort == _TaskSort.recommended;
     return PopupMenuButton<_TaskSort>(
       onSelected: onSelect,
       tooltip: 'Sort tasks',
       itemBuilder: (context) => const [
-        PopupMenuItem(value: _TaskSort.time, child: Text('Sort by time')),
-        PopupMenuItem(
-          value: _TaskSort.recommended,
-          child: Text('Recommended queue'),
-        ),
+        PopupMenuItem(value: _TaskSort.time, child: Text('By time')),
+        PopupMenuItem(value: _TaskSort.recommended, child: Text('Best queue')),
       ],
       child: Container(
-        height: scale.h(30),
-        padding: EdgeInsets.symmetric(horizontal: scale.x(13)),
+        height: scale.h(32),
         decoration: BoxDecoration(
-          color: sort == _TaskSort.recommended
-              ? const Color(0xFF2386A2)
-              : Colors.white,
+          color: active ? const Color(0xFF111827) : Colors.white,
           borderRadius: BorderRadius.circular(scale.radius(18)),
           boxShadow: const [
             BoxShadow(
@@ -823,27 +827,17 @@ class _SortChip extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.sort_rounded,
-              color: sort == _TaskSort.recommended
-                  ? Colors.white
-                  : Colors.black,
-              size: scale.w(14),
+        child: Center(
+          child: Text(
+            'Sort',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.black,
+              fontSize: scale.font(10.5),
+              fontWeight: FontWeight.w900,
             ),
-            SizedBox(width: scale.x(6)),
-            Text(
-              sort == _TaskSort.recommended ? 'Queue' : 'Sort',
-              style: TextStyle(
-                color: sort == _TaskSort.recommended
-                    ? Colors.white
-                    : Colors.black,
-                fontSize: scale.font(12),
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -856,60 +850,41 @@ class _FilterChip extends StatelessWidget {
     required this.label,
     required this.active,
     required this.onTap,
-    this.icon,
   });
 
   final _AgendaScale scale;
   final String label;
-  final IconData? icon;
   final bool active;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(right: scale.x(8)),
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          height: scale.h(30),
-          padding: EdgeInsets.symmetric(horizontal: scale.x(active ? 13 : 11)),
-          decoration: BoxDecoration(
-            color: active ? const Color(0xFF111827) : Colors.white,
-            borderRadius: BorderRadius.circular(scale.radius(18)),
-            border: Border.all(
-              color: active
-                  ? Colors.transparent
-                  : Colors.white.withValues(alpha: 0.9),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: scale.h(32),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF111827) : Colors.white,
+          borderRadius: BorderRadius.circular(scale.radius(18)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x18000000),
+              blurRadius: 7,
+              offset: Offset(0, 3),
             ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x18000000),
-                blurRadius: 7,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  color: active ? Colors.white : Colors.black,
-                  size: scale.w(14),
-                ),
-                SizedBox(width: scale.x(6)),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  color: active ? Colors.white : Colors.black,
-                  fontSize: scale.font(12),
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.black,
+              fontSize: scale.font(10.5),
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ),
@@ -1163,25 +1138,21 @@ class _TaskActionSheet extends StatelessWidget {
                 _TaskActionChip(
                   label: 'To do',
                   value: 'TODO',
-                  icon: Icons.circle_outlined,
                   color: Color(0xFFFFB25A),
                 ),
                 _TaskActionChip(
                   label: 'Doing',
                   value: 'IN_PROGRESS',
-                  icon: Icons.bolt_rounded,
                   color: Color(0xFF2386A2),
                 ),
                 _TaskActionChip(
                   label: 'Done',
                   value: 'DONE',
-                  icon: Icons.check_rounded,
                   color: Color(0xFF60CF67),
                 ),
                 _TaskActionChip(
                   label: 'Delete',
                   value: 'delete',
-                  icon: Icons.delete_outline_rounded,
                   color: Color(0xFFFF5D5D),
                 ),
               ],
@@ -1197,13 +1168,11 @@ class _TaskActionChip extends StatelessWidget {
   const _TaskActionChip({
     required this.label,
     required this.value,
-    required this.icon,
     required this.color,
   });
 
   final String label;
   final String value;
-  final IconData icon;
   final Color color;
 
   @override
@@ -1222,8 +1191,6 @@ class _TaskActionChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
