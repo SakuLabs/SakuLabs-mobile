@@ -332,7 +332,7 @@ class _SuggestionTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Container(
-        minHeight: 76,
+        constraints: const BoxConstraints(minHeight: 76),
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.08),

@@ -983,6 +983,7 @@ class _ProgressRingPainter extends CustomPainter {
   }
 }
 
+// ignore: unused_element
 class _UnusedSakuAiHome extends StatelessWidget {
   const _UnusedSakuAiHome();
 
