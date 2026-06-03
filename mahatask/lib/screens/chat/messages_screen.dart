@@ -131,6 +131,7 @@ class _MessagesScreenState extends State<MessagesScreen>
     if (widget.embedded) return body;
     return Scaffold(backgroundColor: const Color(0xFF1D1D1F), body: body);
   }
+
 }
 
 class _MessagesBody extends StatelessWidget {
@@ -171,6 +172,7 @@ class _MessagesBody extends StatelessWidget {
     final name = context.watch<AuthProvider>().user?.name.trim();
     final displayName = name == null || name.isEmpty ? 'Name' : name;
     final unreadByUser = context.watch<UnreadProvider>().directUnreadByUser;
+    final unreadByGroup = context.watch<UnreadProvider>().groupUnreadById;
     final totalUnread = context.watch<UnreadProvider>().totalUnread;
     final topInset = MediaQuery.paddingOf(context).top;
 
@@ -179,7 +181,22 @@ class _MessagesBody extends StatelessWidget {
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
         final scale = _ChatScale(width: width, height: height);
-        final visibleItems = tab == _MessageTab.group ? groups : friends;
+        final filteredGroups = query.isEmpty
+            ? groups
+            : groups
+                .where((group) => group.name.toLowerCase().contains(query))
+                .toList(growable: false);
+        final filteredFriends = query.isEmpty
+            ? friends
+            : friends
+                .where(
+                  (friend) =>
+                      friend.name.toLowerCase().contains(query) ||
+                      (friend.userCode ?? '').toLowerCase().contains(query),
+                )
+                .toList(growable: false);
+        final visibleItems =
+            tab == _MessageTab.group ? filteredGroups : filteredFriends;
 
         return Container(
           width: double.infinity,
@@ -207,7 +224,10 @@ class _MessagesBody extends StatelessWidget {
                   scale: scale,
                   displayName: displayName,
                   totalUnread: totalUnread,
+                  requestCount: friendRequests.length,
                   onAddFriend: onAddFriend,
+                  onOpenRequests: onOpenRequests,
+                  onOpenCallLog: onOpenCallLog,
                 ),
                 SizedBox(height: scale.h(20)),
                 Text(
@@ -226,6 +246,8 @@ class _MessagesBody extends StatelessWidget {
                   friendsCount: friends.length,
                   onChanged: onTabChanged,
                 ),
+                SizedBox(height: scale.h(12)),
+                _SearchBox(scale: scale, controller: searchController),
                 SizedBox(height: scale.h(14)),
                 if (loading)
                   SizedBox(
@@ -244,14 +266,23 @@ class _MessagesBody extends StatelessWidget {
                     isGroup: tab == _MessageTab.group,
                   )
                 else if (tab == _MessageTab.group)
-                  ...groups.map((group) {
+                  ...filteredGroups.map((group) {
+                    final tasks = groupTasks
+                        .where((task) => task.groupId == group.id)
+                        .toList(growable: false);
                     return _ConversationTile(
                       scale: scale,
                       title: group.name,
-                      subtitle: '${group.members.length} members • Group room',
+                      subtitle:
+                          '${group.members.length} members • ${tasks.length} assigned task${tasks.length == 1 ? '' : 's'}',
                       icon: Icons.groups_2_outlined,
                       accent: const Color(0xFF2386A2),
-                      unread: 0,
+                      unread: unreadByGroup[group.id] ?? 0,
+                      pinnedTaskCount: tasks.length,
+                      taskPreview: tasks.isEmpty ? null : tasks.first,
+                      onTaskTap: tasks.isEmpty
+                          ? null
+                          : () => _openGroupTasks(context, group, tasks),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -267,7 +298,7 @@ class _MessagesBody extends StatelessWidget {
                     );
                   })
                 else
-                  ...friends.map((friend) {
+                  ...filteredFriends.map((friend) {
                     final unread = unreadByUser[friend.id] ?? 0;
                     return _ConversationTile(
                       scale: scale,
@@ -292,8 +323,7 @@ class _MessagesBody extends StatelessWidget {
                         ).then((_) => onReload());
                       },
                     );
-                  }),
-              ],
+                  }),              ],
             ),
           ),
         );
@@ -307,13 +337,19 @@ class _ChatHeader extends StatelessWidget {
     required this.scale,
     required this.displayName,
     required this.totalUnread,
+    required this.requestCount,
     required this.onAddFriend,
+    required this.onOpenRequests,
+    required this.onOpenCallLog,
   });
 
   final _ChatScale scale;
   final String displayName;
   final int totalUnread;
+  final int requestCount;
   final VoidCallback onAddFriend;
+  final VoidCallback onOpenRequests;
+  final VoidCallback onOpenCallLog;
 
   @override
   Widget build(BuildContext context) {
@@ -372,6 +408,23 @@ class _ChatHeader extends StatelessWidget {
           icon: Icons.person_add_alt_1_rounded,
           iconColor: Colors.white,
           onTap: onAddFriend,
+        ),
+        SizedBox(width: scale.x(9)),
+        _CircleAction(
+          scale: scale,
+          color: Colors.white,
+          icon: Icons.notifications_none_rounded,
+          iconColor: Colors.black,
+          badge: requestCount,
+          onTap: onOpenRequests,
+        ),
+        SizedBox(width: scale.x(9)),
+        _CircleAction(
+          scale: scale,
+          color: const Color(0xFFFF5D5D),
+          icon: Icons.call_made_rounded,
+          iconColor: Colors.white,
+          onTap: onOpenCallLog,
         ),
       ],
     );
@@ -489,6 +542,9 @@ class _ConversationTile extends StatelessWidget {
     required this.unread,
     required this.onTap,
     this.avatarUrl,
+    this.pinnedTaskCount = 0,
+    this.taskPreview,
+    this.onTaskTap,
   });
 
   final _ChatScale scale;
@@ -499,6 +555,9 @@ class _ConversationTile extends StatelessWidget {
   final int unread;
   final VoidCallback onTap;
   final String? avatarUrl;
+  final int pinnedTaskCount;
+  final TaskItem? taskPreview;
+  final VoidCallback? onTaskTap;
 
   @override
   Widget build(BuildContext context) {
@@ -525,79 +584,104 @@ class _ConversationTile extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
+          child: Column(
             children: [
-              _ConversationAvatar(
-                scale: scale,
-                accent: accent,
-                icon: icon,
-                avatarUrl: avatarUrl,
-                title: title,
+              Row(
+                children: [
+                  _ConversationAvatar(
+                    scale: scale,
+                    accent: accent,
+                    icon: icon,
+                    avatarUrl: avatarUrl,
+                    title: title,
+                  ),
+                  SizedBox(width: scale.x(11)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: scale.font(15),
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            if (pinnedTaskCount > 0) ...[
+                              SizedBox(width: scale.x(5)),
+                              _TaskPinBadge(
+                                scale: scale,
+                                count: pinnedTaskCount,
+                                onTap: onTaskTap,
+                              ),
+                            ],
+                          ],
+                        ),
+                        SizedBox(height: scale.h(3)),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: const Color(0xFF7A7A7A),
+                            fontSize: scale.font(10),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (unread > 0)
+                    Container(
+                      constraints: BoxConstraints(minWidth: scale.w(23)),
+                      height: scale.w(23),
+                      margin: EdgeInsets.only(left: scale.x(8)),
+                      decoration: BoxDecoration(
+                        color: accent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          unread > 99 ? '99+' : '$unread',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: scale.font(9),
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: scale.w(27),
+                      height: scale.w(27),
+                      margin: EdgeInsets.only(left: scale.x(8)),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE9E9E9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_outward_rounded,
+                        color: const Color(0xFF8A8A8A),
+                        size: scale.w(18),
+                      ),
+                    ),
+                ],
               ),
-              SizedBox(width: scale.x(11)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: scale.font(15),
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: scale.h(3)),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: const Color(0xFF7A7A7A),
-                        fontSize: scale.font(10),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              if (taskPreview != null) ...[
+                SizedBox(height: scale.h(10)),
+                GestureDetector(
+                  onTap: onTaskTap,
+                  child: _GroupTaskPreview(scale: scale, task: taskPreview!),
                 ),
-              ),
-              if (unread > 0)
-                Container(
-                  constraints: BoxConstraints(minWidth: scale.w(23)),
-                  height: scale.w(23),
-                  margin: EdgeInsets.only(left: scale.x(8)),
-                  decoration: BoxDecoration(
-                    color: accent,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      unread > 99 ? '99+' : '$unread',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: scale.font(9),
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  width: scale.w(27),
-                  height: scale.w(27),
-                  margin: EdgeInsets.only(left: scale.x(8)),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE9E9E9),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.arrow_outward_rounded,
-                    color: const Color(0xFF8A8A8A),
-                    size: scale.w(18),
-                  ),
-                ),
+              ],
             ],
           ),
         ),
@@ -637,6 +721,478 @@ class _ConversationAvatar extends StatelessWidget {
             : Center(
                 child: Icon(icon, color: Colors.black, size: scale.w(20)),
               ),
+      ),
+    );
+  }
+}
+
+class _SearchBox extends StatelessWidget {
+  const _SearchBox({required this.scale, required this.controller});
+
+  final _ChatScale scale;
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: scale.h(44),
+      padding: EdgeInsets.symmetric(horizontal: scale.x(14)),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(scale.radius(22)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.search_rounded, color: Colors.black54, size: scale.w(18)),
+          SizedBox(width: scale.x(8)),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: scale.font(12),
+                fontWeight: FontWeight.w700,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Search friends or groups',
+                hintStyle: TextStyle(
+                  color: const Color(0xFF8A8A8A),
+                  fontSize: scale.font(12),
+                  fontWeight: FontWeight.w600,
+                ),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TaskPinBadge extends StatelessWidget {
+  const _TaskPinBadge({
+    required this.scale,
+    required this.count,
+    required this.onTap,
+  });
+
+  final _ChatScale scale;
+  final int count;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: scale.h(22),
+        padding: EdgeInsets.symmetric(horizontal: scale.x(8)),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF5D5D).withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(scale.radius(12)),
+          border: Border.all(color: const Color(0xFFFF5D5D)),
+        ),
+        child: Center(
+          child: Text(
+            'Pin $count',
+            style: TextStyle(
+              color: const Color(0xFFFF5D5D),
+              fontSize: scale.font(8),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupTaskPreview extends StatelessWidget {
+  const _GroupTaskPreview({required this.scale, required this.task});
+
+  final _ChatScale scale;
+  final TaskItem task;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(scale.x(10)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E8),
+        borderRadius: BorderRadius.circular(scale.radius(14)),
+        border: Border.all(color: const Color(0xFFFFD28A)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: scale.w(8),
+            height: scale.w(8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFF5D5D),
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(width: scale.x(8)),
+          Expanded(
+            child: Text(
+              '${task.title} • ${_taskStatusLabel(task.status)} • ${task.progress}%',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: scale.font(10),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GroupTaskSheet extends StatelessWidget {
+  const _GroupTaskSheet({required this.group, required this.tasks});
+
+  final SocialGroup group;
+  final List<TaskItem> tasks;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 24,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '${group.name} pinned tasks',
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...tasks.take(6).map((task) {
+              final description = task.description.trim().isEmpty
+                  ? 'Belum ada detail pembagian. Tambahkan deskripsi task untuk menjelaskan siapa mengerjakan bagian apa.'
+                  : task.description.trim();
+              return Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            task.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${task.progress}%',
+                          style: const TextStyle(
+                            color: Color(0xFF2386A2),
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _MiniStatusPill(label: _taskStatusLabel(task.status)),
+                        _MiniStatusPill(label: _priorityLabel(task.priority)),
+                        ...group.members.take(3).map(
+                              (member) => _MiniStatusPill(label: member.name),
+                            ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniStatusPill extends StatelessWidget {
+  const _MiniStatusPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF7FB),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF2386A2),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FriendRequestDialog extends StatefulWidget {
+  const _FriendRequestDialog({required this.requests});
+
+  final List<dynamic> requests;
+
+  @override
+  State<_FriendRequestDialog> createState() => _FriendRequestDialogState();
+}
+
+class _FriendRequestDialogState extends State<_FriendRequestDialog> {
+  final SocialService _socialService = SocialService();
+  late List<dynamic> _requests = widget.requests;
+  bool _busy = false;
+
+  Future<void> _respond(String id, {required bool accept}) async {
+    setState(() => _busy = true);
+    try {
+      if (accept) {
+        await _socialService.acceptFriendRequest(id);
+      } else {
+        await _socialService.rejectFriendRequest(id);
+      }
+      if (!mounted) return;
+      setState(() {
+        _requests = _requests.where((item) => _requestId(item) != id).toList();
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Friend Requests',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_requests.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 18),
+                child: Text(
+                  'No incoming friend requests.',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            else
+              ..._requests.map((request) {
+                final id = _requestId(request);
+                final name = _requestSenderName(request);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFBFEAF2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.person_rounded, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed:
+                            _busy || id.isEmpty ? null : () => _respond(id, accept: false),
+                        child: const Text('Decline'),
+                      ),
+                      ElevatedButton(
+                        onPressed:
+                            _busy || id.isEmpty ? null : () => _respond(id, accept: true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF5D5D),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Accept'),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CallLogDialog extends StatelessWidget {
+  const _CallLogDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Call Log',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: const Text(
+                'No calls yet. Video calls you start from chat will appear here once call history is connected.',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -717,6 +1273,7 @@ class _CircleAction extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.onTap,
+    this.badge = 0,
   });
 
   final _ChatScale scale;
@@ -724,16 +1281,50 @@ class _CircleAction extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final VoidCallback onTap;
+  final int badge;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: SizedBox(
         width: scale.w(34),
         height: scale.w(34),
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Icon(icon, color: iconColor, size: scale.w(20)),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: Icon(icon, color: iconColor, size: scale.w(20)),
+              ),
+            ),
+            if (badge > 0)
+              Positioned(
+                top: -2,
+                right: -2,
+                child: Container(
+                  constraints: BoxConstraints(minWidth: scale.w(16)),
+                  height: scale.w(16),
+                  padding: EdgeInsets.symmetric(horizontal: scale.x(4)),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF5D5D),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      badge > 9 ? '9+' : '$badge',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: scale.font(7),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -782,4 +1373,49 @@ class _ChatScale {
   double font(double value) => value * width / 393;
   double radius(double value) => value * width / 393;
 }
+
+String _taskStatusLabel(String status) {
+  final value = status.toUpperCase();
+  if (value == 'DONE' || value == 'COMPLETED') return 'Done';
+  if (value == 'IN_PROGRESS') return 'Doing';
+  if (value == 'EXPIRED') return 'Expired';
+  return 'To do';
+}
+
+String _priorityLabel(String priority) {
+  final value = priority.toUpperCase();
+  if (value == 'HIGH') return 'High';
+  if (value == 'LOW') return 'Low';
+  return 'Medium';
+}
+
+String _requestId(dynamic request) {
+  if (request is Map<String, dynamic>) return (request['id'] ?? '').toString();
+  return '';
+}
+
+String _requestSenderName(dynamic request) {
+  if (request is Map<String, dynamic>) {
+    final sender = request['sender'];
+    if (sender is Map<String, dynamic>) {
+      return (sender['name'] ?? 'Unknown user').toString();
+    }
+    return (request['senderName'] ?? 'Unknown user').toString();
+  }
+  return 'Unknown user';
+}
+
+void _openGroupTasks(
+  BuildContext context,
+  SocialGroup group,
+  List<TaskItem> tasks,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.35),
+    builder: (_) => _GroupTaskSheet(group: group, tasks: tasks),
+  );
+}
+
 
