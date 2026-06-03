@@ -1,15 +1,41 @@
 import 'api_client.dart';
 
 class AgentChatResult {
-  const AgentChatResult({required this.conversationId, required this.reply});
+  const AgentChatResult({
+    required this.conversationId,
+    required this.reply,
+    this.actions = const <AgentAction>[],
+  });
 
   final String conversationId;
   final String reply;
+  final List<AgentAction> actions;
 
   factory AgentChatResult.fromJson(Map<String, dynamic> json) {
+    final rawActions = json['actions'];
     return AgentChatResult(
       conversationId: (json['conversationId'] ?? '').toString(),
       reply: (json['reply'] ?? '').toString(),
+      actions: rawActions is List
+          ? rawActions
+              .whereType<Map<String, dynamic>>()
+              .map(AgentAction.fromJson)
+              .toList(growable: false)
+          : const <AgentAction>[],
+    );
+  }
+}
+
+class AgentAction {
+  const AgentAction({required this.tool, required this.ok});
+
+  final String tool;
+  final bool ok;
+
+  factory AgentAction.fromJson(Map<String, dynamic> json) {
+    return AgentAction(
+      tool: (json['tool'] ?? '').toString(),
+      ok: json['ok'] == true,
     );
   }
 }

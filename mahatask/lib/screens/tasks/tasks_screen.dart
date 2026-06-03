@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:mahatask/services/app_events.dart';
 import 'package:mahatask/services/auth_provider.dart';
 import 'package:mahatask/services/task_service.dart';
 
@@ -29,6 +32,7 @@ class _TasksScreenState extends State<TasksScreen>
   _TaskSort _sort = _TaskSort.time;
   List<TaskItem> _tasks = const <TaskItem>[];
   List<GroupOption> _groups = const <GroupOption>[];
+  StreamSubscription<void>? _taskChangedSubscription;
 
   @override
   bool get wantKeepAlive => true;
@@ -37,13 +41,24 @@ class _TasksScreenState extends State<TasksScreen>
   void initState() {
     super.initState();
     _loadData();
+    _taskChangedSubscription = AppEvents.taskChanged.listen((_) {
+      if (mounted) _loadData(silent: true);
+    });
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  @override
+  void dispose() {
+    _taskChangedSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadData({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
 
     try {
       final results = await Future.wait<dynamic>([
@@ -59,7 +74,7 @@ class _TasksScreenState extends State<TasksScreen>
       if (!mounted) return;
       setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && !silent) setState(() => _isLoading = false);
     }
   }
 
@@ -78,6 +93,7 @@ class _TasksScreenState extends State<TasksScreen>
 
     if (created == true) {
       await _loadData();
+      AppEvents.notifyTaskChanged();
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -101,6 +117,7 @@ class _TasksScreenState extends State<TasksScreen>
               .toList(growable: false);
         }
       });
+      AppEvents.notifyTaskChanged();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -118,6 +135,7 @@ class _TasksScreenState extends State<TasksScreen>
       setState(() {
         _tasks = _tasks.where((item) => item.id != task.id).toList();
       });
+      AppEvents.notifyTaskChanged();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -625,9 +643,17 @@ class _WeekStrip extends StatelessWidget {
                               height: scale.w(active ? 38 : 30),
                               decoration: BoxDecoration(
                                 color: active
-                                    ? Colors.black
-                                    : const Color(0xFFE8E8E8),
+                                    ? const Color(0xFF111827)
+                                    : hasTask
+                                        ? const Color(0xFFFFF3D8)
+                                        : const Color(0xFFE8E8E8),
                                 shape: BoxShape.circle,
+                                border: hasTask && !active
+                                    ? Border.all(
+                                        color: const Color(0xFFFFB25A),
+                                        width: 1.4,
+                                      )
+                                    : null,
                               ),
                               child: Center(
                                 child: Text(
@@ -644,13 +670,17 @@ class _WeekStrip extends StatelessWidget {
                             ),
                             if (hasTask)
                               Positioned(
-                                bottom: scale.h(active ? 0 : 2),
+                                bottom: scale.h(active ? -1 : -2),
                                 child: Container(
-                                  width: scale.w(active ? 7 : 5),
-                                  height: scale.w(active ? 7 : 5),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFFF5D5D),
-                                    shape: BoxShape.circle,
+                                  width: scale.w(active ? 18 : 15),
+                                  height: scale.h(active ? 5 : 4),
+                                  decoration: BoxDecoration(
+                                    color: active
+                                        ? const Color(0xFFFFB25A)
+                                        : const Color(0xFF60CF67),
+                                    borderRadius: BorderRadius.circular(
+                                      scale.radius(999),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -685,40 +715,69 @@ class _FilterStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const ClampingScrollPhysics(),
-      child: Row(
+    return SizedBox(
+      height: scale.h(37),
+      child: Stack(
         children: [
-          _FilterChip(
-            scale: scale,
-            label: 'All',
-            icon: null,
-            active: selected == _TaskFilter.all,
-            onTap: () => onSelect(_TaskFilter.all),
+          ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.only(right: scale.x(26)),
+            children: [
+              _FilterChip(
+                scale: scale,
+                label: 'All',
+                icon: null,
+                active: selected == _TaskFilter.all,
+                onTap: () => onSelect(_TaskFilter.all),
+              ),
+              _FilterChip(
+                scale: scale,
+                label: 'To do',
+                icon: Icons.circle_outlined,
+                active: selected == _TaskFilter.todo,
+                onTap: () => onSelect(_TaskFilter.todo),
+              ),
+              _FilterChip(
+                scale: scale,
+                label: 'Doing',
+                icon: Icons.bolt_rounded,
+                active: selected == _TaskFilter.inProgress,
+                onTap: () => onSelect(_TaskFilter.inProgress),
+              ),
+              _FilterChip(
+                scale: scale,
+                label: 'Done',
+                icon: Icons.check_circle_outline_rounded,
+                active: selected == _TaskFilter.completed,
+                onTap: () => onSelect(_TaskFilter.completed),
+              ),
+              _SortChip(scale: scale, sort: sort, onSelect: onSelectSort),
+            ],
           ),
-          _FilterChip(
-            scale: scale,
-            label: 'To-do',
-            icon: Icons.radio_button_unchecked_rounded,
-            active: selected == _TaskFilter.todo,
-            onTap: () => onSelect(_TaskFilter.todo),
+          Positioned(
+            right: 0,
+            top: 2,
+            bottom: 2,
+            child: IgnorePointer(
+              child: Container(
+                width: scale.x(30),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Color(0x00C2E9FB), Color(0xFFC2E9FB)],
+                  ),
+                ),
+                alignment: Alignment.centerRight,
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.black.withValues(alpha: 0.34),
+                  size: scale.w(18),
+                ),
+              ),
+            ),
           ),
-          _FilterChip(
-            scale: scale,
-            label: 'In Progress',
-            icon: Icons.pending_actions_rounded,
-            active: selected == _TaskFilter.inProgress,
-            onTap: () => onSelect(_TaskFilter.inProgress),
-          ),
-          _FilterChip(
-            scale: scale,
-            label: 'Completed',
-            icon: Icons.check_circle_outline_rounded,
-            active: selected == _TaskFilter.completed,
-            onTap: () => onSelect(_TaskFilter.completed),
-          ),
-          _SortChip(scale: scale, sort: sort, onSelect: onSelectSort),
         ],
       ),
     );
@@ -812,12 +871,18 @@ class _FilterChip extends StatelessWidget {
       padding: EdgeInsets.only(right: scale.x(8)),
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
           height: scale.h(30),
-          padding: EdgeInsets.symmetric(horizontal: scale.x(13)),
+          padding: EdgeInsets.symmetric(horizontal: scale.x(active ? 13 : 11)),
           decoration: BoxDecoration(
-            color: active ? Colors.black : Colors.white,
+            color: active ? const Color(0xFF111827) : Colors.white,
             borderRadius: BorderRadius.circular(scale.radius(18)),
+            border: Border.all(
+              color: active
+                  ? Colors.transparent
+                  : Colors.white.withValues(alpha: 0.9),
+            ),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x18000000),
@@ -920,30 +985,22 @@ class _AgendaTaskCard extends StatelessWidget {
                 child: Container(height: 1, color: const Color(0xFF8F8F8F)),
               ),
               SizedBox(width: scale.x(8)),
-              PopupMenuButton<String>(
-                tooltip: 'Task actions',
-                padding: EdgeInsets.zero,
-                icon: Icon(
-                  Icons.more_horiz_rounded,
-                  color: Colors.black.withValues(alpha: 0.58),
-                  size: scale.w(17),
-                ),
-                onSelected: (value) {
-                  if (value == 'delete') {
-                    onDelete();
-                  } else {
-                    onStatusChanged(value);
-                  }
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'TODO', child: Text('Set To Do')),
-                  PopupMenuItem(
-                    value: 'IN_PROGRESS',
-                    child: Text('Set In Progress'),
+              GestureDetector(
+                onTap: () => _showTaskActions(context),
+                child: Container(
+                  width: scale.w(28),
+                  height: scale.w(28),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  PopupMenuItem(value: 'DONE', child: Text('Set Done')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
+                  child: Icon(
+                    Icons.more_horiz_rounded,
+                    color: Colors.black.withValues(alpha: 0.62),
+                    size: scale.w(18),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1030,6 +1087,155 @@ class _AgendaTaskCard extends StatelessWidget {
     final suffix = hour >= 12 ? 'PM' : 'AM';
     final display = hour > 12 ? hour - 12 : hour;
     return '$display:00 $suffix';
+  }
+
+  Future<void> _showTaskActions(BuildContext context) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.32),
+      builder: (context) {
+        return _TaskActionSheet(task: task);
+      },
+    );
+    if (action == null) return;
+    if (action == 'delete') {
+      onDelete();
+    } else {
+      onStatusChanged(action);
+    }
+  }
+}
+
+class _TaskActionSheet extends StatelessWidget {
+  const _TaskActionSheet({required this.task});
+
+  final TaskItem task;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 24,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              task.title.isEmpty ? 'Task actions' : task.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF111827),
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: const [
+                _TaskActionChip(
+                  label: 'To do',
+                  value: 'TODO',
+                  icon: Icons.circle_outlined,
+                  color: Color(0xFFFFB25A),
+                ),
+                _TaskActionChip(
+                  label: 'Doing',
+                  value: 'IN_PROGRESS',
+                  icon: Icons.bolt_rounded,
+                  color: Color(0xFF2386A2),
+                ),
+                _TaskActionChip(
+                  label: 'Done',
+                  value: 'DONE',
+                  icon: Icons.check_rounded,
+                  color: Color(0xFF60CF67),
+                ),
+                _TaskActionChip(
+                  label: 'Delete',
+                  value: 'delete',
+                  icon: Icons.delete_outline_rounded,
+                  color: Color(0xFFFF5D5D),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskActionChip extends StatelessWidget {
+  const _TaskActionChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => Navigator.of(context).pop(value),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withValues(alpha: 0.28)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

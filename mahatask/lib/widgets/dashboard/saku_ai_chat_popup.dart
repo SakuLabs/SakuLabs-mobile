@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:mahatask/services/agent_service.dart';
+import 'package:mahatask/services/app_events.dart';
 import 'package:mahatask/services/auth_provider.dart';
 
 Future<void> showSakuAiChatPopup(BuildContext context) {
@@ -90,6 +91,9 @@ class _SakuAiChatPopupState extends State<_SakuAiChatPopup> {
         _conversationId = result.conversationId;
         _messages.add(_ChatMessage.assistant(result.reply));
       });
+      if (result.actions.any(_shouldRefreshTasks)) {
+        AppEvents.notifyTaskChanged();
+      }
     } catch (error) {
       if (!mounted) return;
       final message = error.toString().replaceFirst('Exception: ', '');
@@ -106,6 +110,14 @@ class _SakuAiChatPopupState extends State<_SakuAiChatPopup> {
       if (mounted) setState(() => _sending = false);
       _scrollToBottom();
     }
+  }
+
+  bool _shouldRefreshTasks(AgentAction action) {
+    if (!action.ok) return false;
+    return action.tool == 'create_task' ||
+        action.tool == 'create_schedule' ||
+        action.tool == 'update_task' ||
+        action.tool == 'delete_task';
   }
 
   void _newChat() {

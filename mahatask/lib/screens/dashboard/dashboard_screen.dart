@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:mahatask/services/app_events.dart';
 import 'package:mahatask/services/auth_provider.dart';
 import 'package:mahatask/services/navigation_provider.dart';
 import 'package:mahatask/services/task_service.dart';
@@ -68,6 +69,7 @@ class _DashboardHomeState extends State<_DashboardHome>
   String? _error;
   List<TaskItem> _tasks = const <TaskItem>[];
   Timer? _refreshTimer;
+  StreamSubscription<void>? _taskChangedSubscription;
 
   @override
   bool get wantKeepAlive => true;
@@ -80,11 +82,15 @@ class _DashboardHomeState extends State<_DashboardHome>
       const Duration(seconds: 12),
       (_) => _loadTasks(silent: true),
     );
+    _taskChangedSubscription = AppEvents.taskChanged.listen((_) {
+      if (mounted) _loadTasks(silent: true);
+    });
   }
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _taskChangedSubscription?.cancel();
     super.dispose();
   }
 

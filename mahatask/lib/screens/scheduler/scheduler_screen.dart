@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import 'package:mahatask/services/app_events.dart';
 import 'package:mahatask/services/scheduler_service.dart';
 import 'package:mahatask/services/task_service.dart';
 
@@ -26,6 +29,7 @@ class _SchedulerScreenState extends State<SchedulerScreen>
   String? _error;
   List<ScheduleItem> _schedules = const <ScheduleItem>[];
   List<TaskItem> _deadlines = const <TaskItem>[];
+  StreamSubscription<void>? _taskChangedSubscription;
 
   @override
   bool get wantKeepAlive => true;
@@ -34,13 +38,24 @@ class _SchedulerScreenState extends State<SchedulerScreen>
   void initState() {
     super.initState();
     _load();
+    _taskChangedSubscription = AppEvents.taskChanged.listen((_) {
+      if (mounted) _load(silent: true);
+    });
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void dispose() {
+    _taskChangedSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait<dynamic>([
         _service.fetchSchedules(),
@@ -55,7 +70,7 @@ class _SchedulerScreenState extends State<SchedulerScreen>
       if (!mounted) return;
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !silent) setState(() => _loading = false);
     }
   }
 
@@ -419,7 +434,7 @@ class _SchedulerScreenState extends State<SchedulerScreen>
         children: [
           Text(_error!, style: const TextStyle(color: Colors.redAccent)),
           const SizedBox(height: 10),
-          TextButton(onPressed: _load, child: const Text('Retry')),
+          TextButton(onPressed: () => _load(), child: const Text('Retry')),
         ],
       ),
     );
