@@ -112,4 +112,28 @@ class SocialService {
   Future<void> rejectFriendRequest(String requestId) async {
     await _client.post('/social/friends/requests/$requestId/reject');
   }
+
+  Future<List<dynamic>> getGroupInvites() async {
+    final data = await _client.get('/social/groups/invites');
+    if (data is! List) return const <dynamic>[];
+    return data;
+  }
+
+  Future<void> inviteToGroup({
+    required String groupId,
+    required String userId,
+  }) async {
+    await _client.post(
+      '/social/groups/$groupId/invites',
+      body: <String, dynamic>{'userId': userId},
+    );
+  }
+
+  Future<void> acceptGroupInvite(String inviteId) async {
+    await _client.post('/social/groups/invites/$inviteId/accept');
+  }
+
+  Future<void> rejectGroupInvite(String inviteId) async {
+    await _client.post('/social/groups/invites/$inviteId/reject');
+  }
 }

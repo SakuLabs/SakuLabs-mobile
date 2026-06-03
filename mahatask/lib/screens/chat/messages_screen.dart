@@ -35,6 +35,7 @@ class _MessagesScreenState extends State<MessagesScreen>
   List<SocialGroup> _groups = const <SocialGroup>[];
   List<SocialUser> _friends = const <SocialUser>[];
   List<dynamic> _friendRequests = const <dynamic>[];
+  List<dynamic> _groupInvites = const <dynamic>[];
   List<TaskItem> _groupTasks = const <TaskItem>[];
   StreamSubscription<RealtimeEvent>? _socialSubscription;
   StreamSubscription<RealtimeEvent>? _messageSubscription;
@@ -79,6 +80,7 @@ class _MessagesScreenState extends State<MessagesScreen>
         _socialService.getGroups(),
         _socialService.getFriends(),
         _socialService.getFriendRequests(),
+        _socialService.getGroupInvites(),
         _taskService.fetchTasks(),
       ]);
       if (!mounted) return;
@@ -86,7 +88,8 @@ class _MessagesScreenState extends State<MessagesScreen>
         _groups = data[0] as List<SocialGroup>;
         _friends = data[1] as List<SocialUser>;
         _friendRequests = data[2] as List<dynamic>;
-        _groupTasks = (data[3] as List<TaskItem>)
+        _groupInvites = data[3] as List<dynamic>;
+        _groupTasks = (data[4] as List<TaskItem>)
             .where((task) => task.isGroupTask)
             .toList(growable: false);
       });
@@ -113,6 +116,9 @@ class _MessagesScreenState extends State<MessagesScreen>
       'friendRequest' => 'Ada friend request baru.',
       'friendRequestAccepted' => 'Friend request diterima.',
       'friendRequestRejected' => 'Friend request ditolak.',
+      'groupInvite' => 'Ada undangan grup baru.',
+      'groupInviteAccepted' => 'Undangan grup diterima.',
+      'groupInviteRejected' => 'Undangan grup ditolak.',
       _ => '',
     };
     if (message.isEmpty) return;
@@ -138,7 +144,19 @@ class _MessagesScreenState extends State<MessagesScreen>
     final changed = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.42),
-      builder: (_) => _FriendRequestDialog(requests: _friendRequests),
+      builder: (_) => _NotificationRequestDialog(
+        friendRequests: _friendRequests,
+        groupInvites: _groupInvites,
+      ),
+    );
+    if (changed == true) await _load(silent: true);
+  }
+
+  Future<void> _openInviteFriends(SocialGroup group) async {
+    final changed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.42),
+      builder: (_) => _GroupInviteDialog(group: group, friends: _friends),
     );
     if (changed == true) await _load(silent: true);
   }
@@ -161,6 +179,7 @@ class _MessagesScreenState extends State<MessagesScreen>
       groups: _groups,
       friends: _friends,
       friendRequests: _friendRequests,
+      groupInvites: _groupInvites,
       groupTasks: _groupTasks,
       searchController: _searchController,
       query: _query,
@@ -168,6 +187,7 @@ class _MessagesScreenState extends State<MessagesScreen>
       onAddFriend: _openAddFriend,
       onOpenRequests: _openFriendRequests,
       onOpenCallLog: _openCallLog,
+      onInviteFriends: _openInviteFriends,
       onTabChanged: (tab) => setState(() => _tab = tab),
     );
 
@@ -185,6 +205,7 @@ class _MessagesBody extends StatelessWidget {
     required this.groups,
     required this.friends,
     required this.friendRequests,
+    required this.groupInvites,
     required this.groupTasks,
     required this.searchController,
     required this.query,
@@ -192,6 +213,7 @@ class _MessagesBody extends StatelessWidget {
     required this.onAddFriend,
     required this.onOpenRequests,
     required this.onOpenCallLog,
+    required this.onInviteFriends,
     required this.onTabChanged,
   });
 
@@ -201,6 +223,7 @@ class _MessagesBody extends StatelessWidget {
   final List<SocialGroup> groups;
   final List<SocialUser> friends;
   final List<dynamic> friendRequests;
+  final List<dynamic> groupInvites;
   final List<TaskItem> groupTasks;
   final TextEditingController searchController;
   final String query;
@@ -208,6 +231,7 @@ class _MessagesBody extends StatelessWidget {
   final VoidCallback onAddFriend;
   final VoidCallback onOpenRequests;
   final VoidCallback onOpenCallLog;
+  final ValueChanged<SocialGroup> onInviteFriends;
   final ValueChanged<_MessageTab> onTabChanged;
 
   @override
@@ -265,7 +289,7 @@ class _MessagesBody extends StatelessWidget {
                 _ChatHeader(
                   scale: scale,
                   displayName: displayName,
-                  requestCount: friendRequests.length,
+                  requestCount: friendRequests.length + groupInvites.length,
                   onAddFriend: onAddFriend,
                   onOpenRequests: onOpenRequests,
                   onOpenCallLog: onOpenCallLog,
@@ -324,6 +348,7 @@ class _MessagesBody extends StatelessWidget {
                       onTaskTap: tasks.isEmpty
                           ? null
                           : () => _openGroupTasks(context, group, tasks),
+                      onInviteTap: () => onInviteFriends(group),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -564,6 +589,7 @@ class _ConversationTile extends StatelessWidget {
     this.pinnedTaskCount = 0,
     this.taskPreview,
     this.onTaskTap,
+    this.onInviteTap,
   });
 
   final _ChatScale scale;
@@ -577,6 +603,7 @@ class _ConversationTile extends StatelessWidget {
   final int pinnedTaskCount;
   final TaskItem? taskPreview;
   final VoidCallback? onTaskTap;
+  final VoidCallback? onInviteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -641,6 +668,13 @@ class _ConversationTile extends StatelessWidget {
                                 onTap: onTaskTap,
                               ),
                             ],
+                            if (onInviteTap != null) ...[
+                              SizedBox(width: scale.x(5)),
+                              _MiniInviteButton(
+                                scale: scale,
+                                onTap: onInviteTap!,
+                              ),
+                            ],
                           ],
                         ),
                         SizedBox(height: scale.h(3)),
@@ -703,6 +737,33 @@ class _ConversationTile extends StatelessWidget {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniInviteButton extends StatelessWidget {
+  const _MiniInviteButton({required this.scale, required this.onTap});
+
+  final _ChatScale scale;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: scale.w(27),
+        height: scale.w(27),
+        decoration: const BoxDecoration(
+          color: Colors.black,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.person_add_alt_1_rounded,
+          color: Colors.white,
+          size: scale.w(15),
         ),
       ),
     );
@@ -1028,21 +1089,27 @@ class _MiniStatusPill extends StatelessWidget {
   }
 }
 
-class _FriendRequestDialog extends StatefulWidget {
-  const _FriendRequestDialog({required this.requests});
+class _NotificationRequestDialog extends StatefulWidget {
+  const _NotificationRequestDialog({
+    required this.friendRequests,
+    required this.groupInvites,
+  });
 
-  final List<dynamic> requests;
+  final List<dynamic> friendRequests;
+  final List<dynamic> groupInvites;
 
   @override
-  State<_FriendRequestDialog> createState() => _FriendRequestDialogState();
+  State<_NotificationRequestDialog> createState() =>
+      _NotificationRequestDialogState();
 }
 
-class _FriendRequestDialogState extends State<_FriendRequestDialog> {
+class _NotificationRequestDialogState extends State<_NotificationRequestDialog> {
   final SocialService _socialService = SocialService();
-  late List<dynamic> _requests = widget.requests;
+  late List<dynamic> _friendRequests = widget.friendRequests;
+  late List<dynamic> _groupInvites = widget.groupInvites;
   bool _busy = false;
 
-  Future<void> _respond(String id, {required bool accept}) async {
+  Future<void> _respondFriend(String id, {required bool accept}) async {
     setState(() => _busy = true);
     try {
       if (accept) {
@@ -1052,7 +1119,28 @@ class _FriendRequestDialogState extends State<_FriendRequestDialog> {
       }
       if (!mounted) return;
       setState(() {
-        _requests = _requests.where((item) => _requestId(item) != id).toList();
+        _friendRequests = _friendRequests
+            .where((item) => _requestId(item) != id)
+            .toList();
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _respondGroup(String id, {required bool accept}) async {
+    setState(() => _busy = true);
+    try {
+      if (accept) {
+        await _socialService.acceptGroupInvite(id);
+      } else {
+        await _socialService.rejectGroupInvite(id);
+      }
+      if (!mounted) return;
+      setState(() {
+        _groupInvites = _groupInvites
+            .where((item) => _requestId(item) != id)
+            .toList();
       });
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1074,7 +1162,7 @@ class _FriendRequestDialogState extends State<_FriendRequestDialog> {
               children: [
                 const Expanded(
                   child: Text(
-                    'Friend Requests',
+                    'Notifications',
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 19,
@@ -1089,11 +1177,11 @@ class _FriendRequestDialogState extends State<_FriendRequestDialog> {
               ],
             ),
             const SizedBox(height: 8),
-            if (_requests.isEmpty)
+            if (_friendRequests.isEmpty && _groupInvites.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 18),
                 child: Text(
-                  'No incoming friend requests.',
+                  'No incoming requests.',
                   style: TextStyle(
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w700,
@@ -1101,60 +1189,116 @@ class _FriendRequestDialogState extends State<_FriendRequestDialog> {
                 ),
               )
             else
-              ..._requests.map((request) {
+              ...[
+                ..._friendRequests.map((request) {
                 final id = _requestId(request);
                 final name = _requestSenderName(request);
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFBFEAF2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.person_rounded, size: 18),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed:
-                            _busy || id.isEmpty ? null : () => _respond(id, accept: false),
-                        child: const Text('Decline'),
-                      ),
-                      ElevatedButton(
-                        onPressed:
-                            _busy || id.isEmpty ? null : () => _respond(id, accept: true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF5D5D),
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Accept'),
-                      ),
-                    ],
-                  ),
+                return _RequestRow(
+                  icon: Icons.person_rounded,
+                  title: name,
+                  subtitle: 'wants to be your friend',
+                  busy: _busy || id.isEmpty,
+                  onDecline: () => _respondFriend(id, accept: false),
+                  onAccept: () => _respondFriend(id, accept: true),
                 );
               }),
+              ..._groupInvites.map((invite) {
+                final id = _requestId(invite);
+                return _RequestRow(
+                  icon: Icons.groups_2_rounded,
+                  title: _groupInviteTitle(invite),
+                  subtitle: _groupInviteSubtitle(invite),
+                  busy: _busy || id.isEmpty,
+                  onDecline: () => _respondGroup(id, accept: false),
+                  onAccept: () => _respondGroup(id, accept: true),
+                );
+              }),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _RequestRow extends StatelessWidget {
+  const _RequestRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.busy,
+    required this.onDecline,
+    required this.onAccept,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool busy;
+  final VoidCallback onDecline;
+  final VoidCallback onAccept;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0xFFBFEAF2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: busy ? null : onDecline,
+            child: const Text('Decline'),
+          ),
+          ElevatedButton(
+            onPressed: busy ? null : onAccept,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5D5D),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Accept'),
+          ),
+        ],
       ),
     );
   }
