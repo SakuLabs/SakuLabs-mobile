@@ -1400,6 +1400,206 @@ class _ChatError extends StatelessWidget {
   }
 }
 
+class _GroupInviteDialog extends StatefulWidget {
+  const _GroupInviteDialog({required this.group, required this.friends});
+
+  final SocialGroup group;
+  final List<SocialUser> friends;
+
+  @override
+  State<_GroupInviteDialog> createState() => _GroupInviteDialogState();
+}
+
+class _GroupInviteDialogState extends State<_GroupInviteDialog> {
+  final SocialService _socialService = SocialService();
+  final Set<String> _selected = <String>{};
+  bool _sending = false;
+
+  List<SocialUser> get _candidates {
+    final memberIds = widget.group.members.map((member) => member.id).toSet();
+    return widget.friends
+        .where((friend) => !memberIds.contains(friend.id))
+        .toList(growable: false);
+  }
+
+  Future<void> _sendInvites() async {
+    if (_selected.isEmpty || _sending) return;
+    setState(() => _sending = true);
+    try {
+      for (final userId in _selected) {
+        await _socialService.inviteToGroup(
+          groupId: widget.group.id,
+          userId: userId,
+        );
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Group invite sent.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final candidates = _candidates;
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Invite to ${widget.group.name}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (candidates.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 18),
+                child: Text(
+                  'All friends are already in this group.',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 320),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: candidates.map((friend) {
+                      final selected = _selected.contains(friend.id);
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            if (selected) {
+                              _selected.remove(friend.id);
+                            } else {
+                              _selected.add(friend.id);
+                            }
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 9),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFFEAF7FB)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: selected
+                                  ? const Color(0xFF2386A2)
+                                  : const Color(0xFFE2E8F0),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFFD7D7),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.person_rounded,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  friend.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              Checkbox(
+                                value: selected,
+                                activeColor: const Color(0xFF2386A2),
+                                onChanged: (_) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selected.remove(friend.id);
+                                    } else {
+                                      _selected.add(friend.id);
+                                    }
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed:
+                    _selected.isEmpty || _sending ? null : _sendInvites,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  _sending
+                      ? 'Sending...'
+                      : 'Invite ${_selected.length} friend${_selected.length == 1 ? '' : 's'}',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _EmptyChatList extends StatelessWidget {
   const _EmptyChatList({required this.scale, required this.isGroup});
 
@@ -1566,6 +1766,26 @@ String _requestSenderName(dynamic request) {
     return (request['senderName'] ?? 'Unknown user').toString();
   }
   return 'Unknown user';
+}
+
+String _groupInviteTitle(dynamic invite) {
+  if (invite is Map<String, dynamic>) {
+    final group = invite['group'];
+    if (group is Map<String, dynamic>) {
+      return (group['name'] ?? 'Group invite').toString();
+    }
+  }
+  return 'Group invite';
+}
+
+String _groupInviteSubtitle(dynamic invite) {
+  if (invite is Map<String, dynamic>) {
+    final inviter = invite['inviter'];
+    if (inviter is Map<String, dynamic>) {
+      return 'invited by ${(inviter['name'] ?? 'a friend').toString()}';
+    }
+  }
+  return 'invited you to join';
 }
 
 void _openGroupTasks(

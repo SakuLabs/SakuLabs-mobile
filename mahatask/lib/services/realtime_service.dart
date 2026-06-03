@@ -60,6 +60,15 @@ class RealtimeService {
       ..on('friendRequestRejected', (data) {
         _emitSocial('friendRequestRejected', data);
       })
+      ..on('groupInvite', (data) {
+        _emitSocial('groupInvite', data);
+      })
+      ..on('groupInviteAccepted', (data) {
+        _emitSocial('groupInviteAccepted', data);
+      })
+      ..on('groupInviteRejected', (data) {
+        _emitSocial('groupInviteRejected', data);
+      })
       ..on('message_notification', (data) {
         _emitMessage('message_notification', data);
       })
