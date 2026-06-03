@@ -19,7 +19,8 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nav = context.watch<NavigationProvider>();
-    final unread = context.watch<UnreadProvider>().totalUnread;
+    final unreadProvider = context.watch<UnreadProvider>();
+    final unread = unreadProvider.totalUnread;
     const pages = <Widget>[
       _DashboardHome(),
       TasksScreen(embedded: true),

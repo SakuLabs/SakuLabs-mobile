@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:mahatask/services/auth_provider.dart';
+import 'package:mahatask/services/realtime_service.dart';
 import 'package:mahatask/services/social_service.dart';
 import 'package:mahatask/services/task_service.dart';
 import 'package:mahatask/services/unread_provider.dart';
@@ -33,6 +36,8 @@ class _MessagesScreenState extends State<MessagesScreen>
   List<SocialUser> _friends = const <SocialUser>[];
   List<dynamic> _friendRequests = const <dynamic>[];
   List<TaskItem> _groupTasks = const <TaskItem>[];
+  StreamSubscription<RealtimeEvent>? _socialSubscription;
+  StreamSubscription<RealtimeEvent>? _messageSubscription;
 
   @override
   bool get wantKeepAlive => true;
@@ -40,6 +45,14 @@ class _MessagesScreenState extends State<MessagesScreen>
   @override
   void initState() {
     super.initState();
+    RealtimeService.instance.connect();
+    _socialSubscription = RealtimeService.instance.socialEvents.listen(
+      _handleSocialRealtime,
+    );
+    _messageSubscription = RealtimeService.instance.messageEvents.listen((_) {
+      if (!mounted) return;
+      context.read<UnreadProvider>().refresh();
+    });
     _load();
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.trim().toLowerCase());
@@ -48,15 +61,19 @@ class _MessagesScreenState extends State<MessagesScreen>
 
   @override
   void dispose() {
+    _socialSubscription?.cancel();
+    _messageSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final data = await Future.wait<dynamic>([
         _socialService.getGroups(),
@@ -76,10 +93,36 @@ class _MessagesScreenState extends State<MessagesScreen>
       await context.read<UnreadProvider>().refresh();
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+      if (!silent) {
+        setState(
+          () => _error = error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !silent) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _handleSocialRealtime(RealtimeEvent event) async {
+    if (!mounted) return;
+    if (event.type == 'disconnect' || event.type == 'presence:update') return;
+    await _load(silent: true);
+    if (!mounted) return;
+
+    final message = switch (event.type) {
+      'friendRequest' => 'Ada friend request baru.',
+      'friendRequestAccepted' => 'Friend request diterima.',
+      'friendRequestRejected' => 'Friend request ditolak.',
+      _ => '',
+    };
+    if (message.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Future<void> _openAddFriend() async {
@@ -88,7 +131,7 @@ class _MessagesScreenState extends State<MessagesScreen>
       barrierColor: Colors.black.withValues(alpha: 0.42),
       builder: (_) => const AddFriendDialog(),
     );
-    if (changed == true) await _load();
+    if (changed == true) await _load(silent: true);
   }
 
   Future<void> _openFriendRequests() async {
@@ -97,7 +140,7 @@ class _MessagesScreenState extends State<MessagesScreen>
       barrierColor: Colors.black.withValues(alpha: 0.42),
       builder: (_) => _FriendRequestDialog(requests: _friendRequests),
     );
-    if (changed == true) await _load();
+    if (changed == true) await _load(silent: true);
   }
 
   void _openCallLog() {
@@ -173,7 +216,6 @@ class _MessagesBody extends StatelessWidget {
     final displayName = name == null || name.isEmpty ? 'Name' : name;
     final unreadByUser = context.watch<UnreadProvider>().directUnreadByUser;
     final unreadByGroup = context.watch<UnreadProvider>().groupUnreadById;
-    final totalUnread = context.watch<UnreadProvider>().totalUnread;
     final topInset = MediaQuery.paddingOf(context).top;
 
     return LayoutBuilder(
@@ -223,7 +265,6 @@ class _MessagesBody extends StatelessWidget {
                 _ChatHeader(
                   scale: scale,
                   displayName: displayName,
-                  totalUnread: totalUnread,
                   requestCount: friendRequests.length,
                   onAddFriend: onAddFriend,
                   onOpenRequests: onOpenRequests,
@@ -336,7 +377,6 @@ class _ChatHeader extends StatelessWidget {
   const _ChatHeader({
     required this.scale,
     required this.displayName,
-    required this.totalUnread,
     required this.requestCount,
     required this.onAddFriend,
     required this.onOpenRequests,
@@ -345,7 +385,6 @@ class _ChatHeader extends StatelessWidget {
 
   final _ChatScale scale;
   final String displayName;
-  final int totalUnread;
   final int requestCount;
   final VoidCallback onAddFriend;
   final VoidCallback onOpenRequests;
@@ -382,26 +421,6 @@ class _ChatHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (totalUnread > 0)
-          Container(
-            height: scale.h(28),
-            padding: EdgeInsets.symmetric(horizontal: scale.x(10)),
-            margin: EdgeInsets.only(right: scale.x(9)),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(scale.radius(18)),
-            ),
-            child: Center(
-              child: Text(
-                '$totalUnread new',
-                style: TextStyle(
-                  color: const Color(0xFFFF5D5D),
-                  fontSize: scale.font(10),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
         _CircleAction(
           scale: scale,
           color: Colors.black,

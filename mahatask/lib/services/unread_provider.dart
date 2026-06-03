@@ -11,17 +11,18 @@ class UnreadProvider extends ChangeNotifier {
   final ChatService _chatService;
 
   Timer? _timer;
-  Map<String, int> _directUnreadByUser = const <String, int>{};
-  Map<String, int> _groupUnreadById = const <String, int>{};
+  Map<String, int>? _directUnreadByUser = const <String, int>{};
+  Map<String, int>? _groupUnreadById = const <String, int>{};
   bool _loading = false;
   bool _active = false;
 
-  Map<String, int> get directUnreadByUser => _directUnreadByUser;
-  Map<String, int> get groupUnreadById => _groupUnreadById;
+  Map<String, int> get directUnreadByUser =>
+      _directUnreadByUser ?? const <String, int>{};
+  Map<String, int> get groupUnreadById =>
+      _groupUnreadById ?? const <String, int>{};
   bool get isLoading => _loading;
   int get totalUnread =>
-      _directUnreadByUser.values.fold<int>(0, (a, b) => a + b) +
-      _groupUnreadById.values.fold<int>(0, (a, b) => a + b);
+      _sumUnread(directUnreadByUser) + _sumUnread(groupUnreadById);
 
   void start() {
     if (_active) return;
@@ -57,8 +58,8 @@ class UnreadProvider extends ChangeNotifier {
           direct[entry.key] = entry.value;
         }
       }
-      if (!_isSameMap(_directUnreadByUser, direct) ||
-          !_isSameMap(_groupUnreadById, groups)) {
+      if (!_isSameMap(directUnreadByUser, direct) ||
+          !_isSameMap(groupUnreadById, groups)) {
         _directUnreadByUser = direct;
         _groupUnreadById = groups;
       }
@@ -71,8 +72,12 @@ class UnreadProvider extends ChangeNotifier {
   }
 
   void clear() {
+    if (directUnreadByUser.isEmpty && groupUnreadById.isEmpty && !_loading) {
+      return;
+    }
     _directUnreadByUser = const <String, int>{};
     _groupUnreadById = const <String, int>{};
+    _loading = false;
     notifyListeners();
   }
 
@@ -82,5 +87,13 @@ class UnreadProvider extends ChangeNotifier {
       if (b[entry.key] != entry.value) return false;
     }
     return true;
+  }
+
+  int _sumUnread(Map<String, int> source) {
+    var total = 0;
+    for (final value in source.values) {
+      total += value;
+    }
+    return total;
   }
 }

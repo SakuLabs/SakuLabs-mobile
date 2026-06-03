@@ -5,6 +5,7 @@ import 'package:mahatask/screens/dashboard/dashboard_screen.dart';
 import 'package:mahatask/screens/onboarding/welcome_screen.dart';
 import 'package:mahatask/services/auth_provider.dart';
 import 'package:mahatask/services/navigation_provider.dart';
+import 'package:mahatask/services/realtime_service.dart';
 import 'package:mahatask/services/theme_provider.dart';
 import 'package:mahatask/services/unread_provider.dart';
 import 'package:mahatask/theme/app_theme.dart';
@@ -52,6 +53,18 @@ class _AppGateState extends State<_AppGate> {
   @override
   Widget build(BuildContext context) {
     final authenticated = context.watch<AuthProvider>().isAuthenticated;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final unread = context.read<UnreadProvider>();
+      if (authenticated) {
+        unread.start();
+        RealtimeService.instance.connect();
+      } else {
+        unread.stop();
+        unread.clear();
+        RealtimeService.instance.disconnect();
+      }
+    });
     return authenticated ? const DashboardScreen() : const WelcomeScreen();
   }
 }

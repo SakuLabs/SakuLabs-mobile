@@ -656,66 +656,16 @@ class _WeekStrip extends StatelessWidget {
                                     : null,
                               ),
                               child: Center(
-                                child: active && hasTask
-                                    ? Container(
-                                        width: scale.w(24),
-                                        height: scale.w(24),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: const Color(0xFFFF5D5D),
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            '${day.day}',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: scale.font(11),
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : Text(
-                                        '${day.day}',
-                                        style: TextStyle(
-                                          color: active
-                                              ? Colors.white
-                                              : Colors.black,
-                                          fontSize: scale.font(active ? 12 : 10),
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            if (hasTask && !active)
-                              Positioned(
-                                bottom: scale.h(-1),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: scale.w(4.5),
-                                      height: scale.w(4.5),
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFFF5D5D),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    SizedBox(width: scale.x(2.5)),
-                                    Container(
-                                      width: scale.w(4.5),
-                                      height: scale.w(4.5),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.black,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  ],
+                                child: Text(
+                                  '${day.day}',
+                                  style: TextStyle(
+                                    color: active ? Colors.white : Colors.black,
+                                    fontSize: scale.font(active ? 12 : 10),
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
+                            ),
                           ],
                         ),
                       ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:mahatask/services/chat_service.dart';
+import 'package:mahatask/services/realtime_service.dart';
 import 'package:mahatask/services/session_store.dart';
 import 'package:mahatask/screens/call/video_call_screen.dart';
 
@@ -32,10 +33,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   String? _error;
   List<ChatMessage> _messages = const <ChatMessage>[];
   Timer? _polling;
+  StreamSubscription<RealtimeEvent>? _messageSubscription;
 
   @override
   void initState() {
     super.initState();
+    RealtimeService.instance.connect();
+    if (widget.isGroup) {
+      RealtimeService.instance.joinGroup(widget.id);
+    } else {
+      RealtimeService.instance.joinDirectMessage(widget.id);
+    }
+    _messageSubscription = RealtimeService.instance.messageEvents.listen(
+      _handleRealtimeMessage,
+    );
     _loadMessages();
     _markRead();
     _polling = Timer.periodic(
@@ -55,9 +66,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   void dispose() {
     _polling?.cancel();
+    _messageSubscription?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRealtimeMessage(RealtimeEvent event) async {
+    final payload = event.payload;
+    if (payload == null || !mounted) return;
+
+    final key = (payload['conversationKey'] ?? '').toString();
+    final expectedKey = widget.isGroup ? 'group:${widget.id}' : 'dm:${widget.id}';
+    final shouldReload =
+        key == expectedKey ||
+        event.type == 'receive_message' ||
+        payload['groupId']?.toString() == widget.id ||
+        payload['directMessageUserId']?.toString() == widget.id;
+    if (!shouldReload) return;
+
+    await _loadMessages(silent: true);
+    await _markRead();
   }
 
   Future<void> _loadMessages({bool silent = false}) async {
