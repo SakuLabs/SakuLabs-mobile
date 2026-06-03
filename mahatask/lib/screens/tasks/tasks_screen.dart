@@ -1469,54 +1469,36 @@ class _CalendarDialog extends StatelessWidget {
                                     dayNum,
                                   );
                                   final active = _sameDay(date, selectedDay);
-                                  final hasTask = taskDateKeys.contains(
-                                    _dateKey(date),
-                                  );
                                   return GestureDetector(
                                     onTap: () => onSelect(date),
                                     child: SizedBox(
                                       height: scale.h(active ? 42 : 34),
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 180,
-                                            ),
-                                            width: scale.w(active ? 40 : 34),
-                                            height: scale.w(active ? 40 : 34),
-                                            decoration: BoxDecoration(
-                                              color: active
-                                                  ? Colors.black
-                                                  : Colors.transparent,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                '$dayNum',
-                                                style: TextStyle(
-                                                  color: active
-                                                      ? Colors.white
-                                                      : Colors.black,
-                                                  fontSize: scale.font(11),
-                                                  fontWeight: FontWeight.w800,
-                                                ),
+                                      child: Center(
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 180,
+                                          ),
+                                          width: scale.w(active ? 40 : 34),
+                                          height: scale.w(active ? 40 : 34),
+                                          decoration: BoxDecoration(
+                                            color: active
+                                                ? Colors.black
+                                                : Colors.transparent,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '$dayNum',
+                                              style: TextStyle(
+                                                color: active
+                                                    ? Colors.white
+                                                    : Colors.black,
+                                                fontSize: scale.font(11),
+                                                fontWeight: FontWeight.w800,
                                               ),
                                             ),
                                           ),
-                                          if (hasTask)
-                                            Positioned(
-                                              bottom: scale.h(3),
-                                              child: Container(
-                                                width: scale.w(active ? 6 : 4),
-                                                height: scale.w(active ? 6 : 4),
-                                                decoration: const BoxDecoration(
-                                                  color: Color(0xFFFF5D5D),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
+                                        ),
                                       ),
                                     ),
                                   );
