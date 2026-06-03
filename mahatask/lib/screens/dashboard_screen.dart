@@ -8,6 +8,7 @@ import '../services/navigation_provider.dart';
 import '../services/task_service.dart';
 import '../services/unread_provider.dart';
 import '../widgets/dashboard/bottom_nav_bar.dart';
+import '../widgets/dashboard/saku_ai_chat_popup.dart';
 import 'messages_screen.dart';
 import 'tasks_screen.dart';
 
@@ -22,14 +23,14 @@ class DashboardScreen extends StatelessWidget {
       _DashboardHome(),
       TasksScreen(embedded: true),
       MessagesScreen(embedded: true),
-      _SakuAiHome(),
     ];
+    final pageIndex = nav.index.clamp(0, pages.length - 1);
 
     return Scaffold(
       backgroundColor: const Color(0xFF1D1D1F),
       body: Stack(
         children: [
-          IndexedStack(index: nav.index, children: pages),
+          IndexedStack(index: pageIndex, children: pages),
           Positioned(
             left: 0,
             right: 0,
@@ -37,6 +38,10 @@ class DashboardScreen extends StatelessWidget {
             child: CustomBottomNav(
               currentIndex: nav.index,
               onTap: (value) {
+                if (value == 3) {
+                  showSakuAiChatPopup(context);
+                  return;
+                }
                 context.read<NavigationProvider>().setIndex(value);
               },
               messagesUnread: unread,
@@ -978,8 +983,8 @@ class _ProgressRingPainter extends CustomPainter {
   }
 }
 
-class _SakuAiHome extends StatelessWidget {
-  const _SakuAiHome();
+class _UnusedSakuAiHome extends StatelessWidget {
+  const _UnusedSakuAiHome();
 
   @override
   Widget build(BuildContext context) {

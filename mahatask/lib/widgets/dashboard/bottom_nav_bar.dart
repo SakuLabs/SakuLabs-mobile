@@ -16,7 +16,12 @@ class CustomBottomNav extends StatelessWidget {
     _NavItem(icon: Icons.grid_view_rounded, label: 'Dashboard'),
     _NavItem(icon: Icons.checklist_rounded, label: 'Tasks'),
     _NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Chats'),
-    _NavItem(icon: Icons.ac_unit_rounded, label: 'SakuAI'),
+    _NavItem(
+      icon: Icons.circle,
+      label: 'SakuAI',
+      darkAsset: 'assets/img/black-logo.png',
+      lightAsset: 'assets/img/white-logo.png',
+    ),
   ];
 
   @override
@@ -97,11 +102,7 @@ class _DashboardNavButton extends StatelessWidget {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  item.icon,
-                  color: active ? Colors.white : Colors.black,
-                  size: active ? 28 : 21,
-                ),
+                _NavIcon(item: item, active: active),
                 const SizedBox(height: 2),
                 Text(
                   item.label,
@@ -146,8 +147,44 @@ class _DashboardNavButton extends StatelessWidget {
 }
 
 class _NavItem {
-  const _NavItem({required this.icon, required this.label});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    this.darkAsset,
+    this.lightAsset,
+  });
 
   final IconData icon;
   final String label;
+  final String? darkAsset;
+  final String? lightAsset;
+}
+
+class _NavIcon extends StatelessWidget {
+  const _NavIcon({required this.item, required this.active});
+
+  final _NavItem item;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = active ? item.lightAsset : item.darkAsset;
+    if (asset != null) {
+      final size = active ? 30.0 : 23.0;
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.asset(
+          asset,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return Icon(
+      item.icon,
+      color: active ? Colors.white : Colors.black,
+      size: active ? 28 : 21,
+    );
+  }
 }
