@@ -630,12 +630,28 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final framed = onInviteTap != null;
     return Padding(
       padding: EdgeInsets.only(bottom: scale.h(18)),
       child: GestureDetector(
         onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: scale.x(2)),
+        child: Container(
+          padding: framed
+              ? EdgeInsets.all(scale.x(13))
+              : EdgeInsets.symmetric(horizontal: scale.x(2)),
+          decoration: framed
+              ? BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(scale.radius(20)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x16000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                )
+              : null,
           child: SizedBox(
             width: double.infinity,
             child: Column(

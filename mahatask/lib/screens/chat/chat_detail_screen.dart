@@ -77,7 +77,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (payload == null || !mounted) return;
 
     final key = (payload['conversationKey'] ?? '').toString();
-    final expectedKey = widget.isGroup ? 'group:${widget.id}' : 'dm:${widget.id}';
+    final expectedKey = widget.isGroup
+        ? 'group:${widget.id}'
+        : 'dm:${widget.id}';
     final shouldReload =
         key == expectedKey ||
         event.type == 'receive_message' ||
@@ -451,12 +453,13 @@ class _MessageComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         scale.x(14),
         scale.h(8),
         scale.x(14),
-        scale.h(16),
+        bottomInset + scale.h(16),
       ),
       child: Container(
         padding: EdgeInsets.fromLTRB(scale.x(12), 0, scale.x(6), 0),
@@ -662,4 +665,3 @@ class _BubbleScale {
   double font(double value) => value * width / 393;
   double radius(double value) => value * width / 393;
 }
-

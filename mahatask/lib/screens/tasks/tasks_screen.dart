@@ -800,13 +800,11 @@ class _SortChip extends StatelessWidget {
         _sortMenuItem(
           value: _TaskSort.time,
           label: 'By time',
-          icon: Icons.schedule_rounded,
           selected: sort == _TaskSort.time,
         ),
         _sortMenuItem(
           value: _TaskSort.recommended,
           label: 'Best queue',
-          icon: Icons.auto_awesome_rounded,
           selected: sort == _TaskSort.recommended,
         ),
       ],
@@ -827,15 +825,9 @@ class _SortChip extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              active ? Icons.auto_awesome_rounded : Icons.schedule_rounded,
-              color: active ? Colors.white : Colors.black,
-              size: scale.w(13),
-            ),
-            SizedBox(width: scale.x(5)),
             Flexible(
               child: Text(
-                active ? 'Best' : 'Time',
+                'Sort',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -854,7 +846,6 @@ class _SortChip extends StatelessWidget {
   PopupMenuItem<_TaskSort> _sortMenuItem({
     required _TaskSort value,
     required String label,
-    required IconData icon,
     required bool selected,
   }) {
     return PopupMenuItem<_TaskSort>(
@@ -869,8 +860,6 @@ class _SortChip extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: Colors.black, size: 17),
-            const SizedBox(width: 9),
             Expanded(
               child: Text(
                 label,
@@ -1979,6 +1968,10 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                         label: 'Task Title',
                         child: TextField(
                           controller: _titleController,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w800,
+                          ),
                           decoration: _inputDecoration('Project Assignment'),
                         ),
                       ),
@@ -1988,6 +1981,10 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                           controller: _descriptionController,
                           minLines: 4,
                           maxLines: 6,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w700,
+                          ),
                           decoration: _inputDecoration(
                             'Pbfbabwfboauwbfbabfobabfasbfubasofbasbuasbfuoabsfasoutbasbdfbasoutbasbfasbfoasobfas',
                           ),
@@ -2327,14 +2324,14 @@ class _PriorityChoice extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         height: 42,
         decoration: BoxDecoration(
-          color: active ? Colors.black : const Color(0xFFE9E9E9),
+          color: active ? const Color(0xFFFF5D5D) : const Color(0xFFE9E9E9),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: active ? Colors.white : const Color(0xFF6B7280),
+              color: Colors.black,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
