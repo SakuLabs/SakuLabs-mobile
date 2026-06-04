@@ -161,7 +161,7 @@ class _TasksScreenState extends State<TasksScreen>
       builder: (context) {
         return _CalendarDialog(
           selectedDay: _currentSelectedDay,
-          taskDateKeys: _taskDateKeys(_tasks),
+          taskDateMarkers: _taskDateMarkers(_tasks),
           onSelect: (day) {
             setState(() => _selectedDay = day);
             Navigator.pop(context);
@@ -279,6 +279,36 @@ class _TasksScreenState extends State<TasksScreen>
         .where((task) => task.dueDate != null)
         .map((task) => _dateKey(task.dueDate!))
         .toSet();
+  }
+
+  static Map<int, Color> _taskDateMarkers(List<TaskItem> tasks) {
+    final ranks = <int, int>{};
+    for (final task in tasks) {
+      final dueDate = task.dueDate;
+      if (dueDate == null) continue;
+      final key = _dateKey(dueDate);
+      final rank = _priorityRank(task.priority);
+      if (rank > (ranks[key] ?? 0)) {
+        ranks[key] = rank;
+      }
+    }
+    return {
+      for (final entry in ranks.entries)
+        entry.key: _priorityMarkerColor(entry.value),
+    };
+  }
+
+  static int _priorityRank(String priority) {
+    final value = priority.toUpperCase();
+    if (value == 'HIGH') return 3;
+    if (value == 'MEDIUM') return 2;
+    return 1;
+  }
+
+  static Color _priorityMarkerColor(int rank) {
+    if (rank >= 3) return const Color(0xFFFF2F4F);
+    if (rank == 2) return const Color(0xFFFFB24A);
+    return const Color(0xFF60CF67);
   }
 
   static Map<String, GroupOption> _groupsById(List<GroupOption> groups) {
@@ -645,8 +675,8 @@ class _WeekStrip extends StatelessWidget {
                                 color: active
                                     ? const Color(0xFF111827)
                                     : hasTask
-                                        ? Colors.white
-                                        : const Color(0xFFE8E8E8),
+                                    ? Colors.white
+                                    : const Color(0xFFE8E8E8),
                                 shape: BoxShape.circle,
                                 border: hasTask && !active
                                     ? Border.all(
@@ -866,7 +896,8 @@ class _AgendaTaskCard extends StatelessWidget {
     final hasDescription = task.description.trim().isNotEmpty;
     final due = task.dueDate ?? DateTime.now();
     final group = _groupForTask(task, groupsById);
-    final memberNames = group?.members
+    final memberNames =
+        group?.members
             .map((member) => member.name)
             .where((name) => name.trim().isNotEmpty)
             .take(3)
@@ -947,7 +978,7 @@ class _AgendaTaskCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: scale.x(8)),
-              _MiniAvatars(scale: scale, task: task),
+              _MiniAvatars(scale: scale, task: task, group: group),
               SizedBox(width: scale.x(7)),
               _DoneTaskButton(
                 scale: scale,
@@ -991,7 +1022,9 @@ class _AgendaTaskCard extends StatelessWidget {
             _TaskGroupInfo(
               scale: scale,
               groupName: group.name,
-              memberNames: memberNames.isEmpty ? 'Belum ada member' : memberNames,
+              memberNames: memberNames.isEmpty
+                  ? 'Belum ada member'
+                  : memberNames,
             ),
           ],
           SizedBox(height: expanded ? scale.h(17) : scale.h(14)),
@@ -1320,15 +1353,22 @@ class _StatusPill extends StatelessWidget {
 }
 
 class _MiniAvatars extends StatelessWidget {
-  const _MiniAvatars({required this.scale, required this.task});
+  const _MiniAvatars({
+    required this.scale,
+    required this.task,
+    required this.group,
+  });
 
   final _AgendaScale scale;
   final TaskItem task;
+  final GroupOption? group;
 
   @override
   Widget build(BuildContext context) {
-    final count = task.isGroupTask ? 3 : 1;
-    return SizedBox(
+    final count = task.isGroupTask
+        ? (group?.members.length ?? 3).clamp(1, 3)
+        : 1;
+    final avatars = SizedBox(
       width: scale.w(42),
       height: scale.w(24),
       child: Stack(
@@ -1351,18 +1391,112 @@ class _MiniAvatars extends StatelessWidget {
         }),
       ),
     );
+    if (group == null) return avatars;
+    return GestureDetector(
+      onTap: () => _showGroupMembers(context, group!),
+      child: avatars,
+    );
+  }
+
+  void _showGroupMembers(BuildContext context, GroupOption group) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      builder: (_) => _GroupMembersDialog(group: group),
+    );
+  }
+}
+
+class _GroupMembersDialog extends StatelessWidget {
+  const _GroupMembersDialog({required this.group});
+
+  final GroupOption group;
+
+  @override
+  Widget build(BuildContext context) {
+    final members = group.members;
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    group.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            if (members.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Belum ada data anggota.',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 260),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: members.length,
+                  itemBuilder: (context, index) {
+                    final member = members[index];
+                    return ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        backgroundColor: Color(0xFFBFEAF2),
+                        child: Icon(Icons.person_rounded, color: Colors.black),
+                      ),
+                      title: Text(
+                        member.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
 class _CalendarDialog extends StatelessWidget {
   const _CalendarDialog({
     required this.selectedDay,
-    required this.taskDateKeys,
+    required this.taskDateMarkers,
     required this.onSelect,
   });
 
   final DateTime selectedDay;
-  final Set<int> taskDateKeys;
+  final Map<int, Color> taskDateMarkers;
   final ValueChanged<DateTime> onSelect;
 
   @override
@@ -1469,36 +1603,55 @@ class _CalendarDialog extends StatelessWidget {
                                     dayNum,
                                   );
                                   final active = _sameDay(date, selectedDay);
+                                  final markerColor =
+                                      taskDateMarkers[_dateKey(date)];
                                   return GestureDetector(
                                     onTap: () => onSelect(date),
                                     child: SizedBox(
                                       height: scale.h(active ? 42 : 34),
-                                      child: Center(
-                                        child: AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 180,
-                                          ),
-                                          width: scale.w(active ? 40 : 34),
-                                          height: scale.w(active ? 40 : 34),
-                                          decoration: BoxDecoration(
-                                            color: active
-                                                ? Colors.black
-                                                : Colors.transparent,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              '$dayNum',
-                                              style: TextStyle(
-                                                color: active
-                                                    ? Colors.white
-                                                    : Colors.black,
-                                                fontSize: scale.font(11),
-                                                fontWeight: FontWeight.w800,
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 180,
+                                            ),
+                                            width: scale.w(active ? 40 : 34),
+                                            height: scale.w(active ? 40 : 34),
+                                            decoration: BoxDecoration(
+                                              color: active
+                                                  ? Colors.black
+                                                  : Colors.transparent,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                '$dayNum',
+                                                style: TextStyle(
+                                                  color: active
+                                                      ? Colors.white
+                                                      : Colors.black,
+                                                  fontSize: scale.font(11),
+                                                  fontWeight: FontWeight.w800,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
+                                          if (markerColor != null)
+                                            Positioned(
+                                              bottom: active
+                                                  ? scale.h(1)
+                                                  : scale.h(0),
+                                              child: Container(
+                                                width: scale.w(5.5),
+                                                height: scale.w(5.5),
+                                                decoration: BoxDecoration(
+                                                  color: markerColor,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
                                   );
@@ -1603,7 +1756,7 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
       builder: (context) {
         return _CalendarDialog(
           selectedDay: current,
-          taskDateKeys: const <int>{},
+          taskDateMarkers: const <int, Color>{},
           onSelect: (day) {
             picked = day;
             Navigator.pop(context);
@@ -1716,219 +1869,253 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
             maxWidth: media.size.width * 0.9,
             maxHeight: media.size.height * 0.82,
           ),
-          child: Material(
-            color: Colors.white,
-            elevation: 18,
-            shadowColor: Colors.black.withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(28),
-            clipBehavior: Clip.antiAlias,
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 22),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD6D6D6),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Create Task',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _SheetField(
-                    label: 'Task Title',
-                    child: TextField(
-                      controller: _titleController,
-                      decoration: _inputDecoration('Project Assignment'),
-                    ),
-                  ),
-                  _SheetField(
-                    label: 'Description',
-                    child: TextField(
-                      controller: _descriptionController,
-                      minLines: 4,
-                      maxLines: 6,
-                      decoration: _inputDecoration(
-                        'Pbfbabwfboauwbfbabfobabfasbfubasofbasbuasbfuoabsfasoutbasbdfbasoutbasbfasbfoasobfas',
-                      ),
-                    ),
-                  ),
-                  const Text(
-                    'Due Date & Time',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Material(
+                color: Colors.white,
+                elevation: 18,
+                shadowColor: Colors.black.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(28),
+                clipBehavior: Clip.antiAlias,
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 22),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _PickerButton(
-                          icon: Icons.calendar_today_outlined,
-                          value: _dateLabel(_deadline),
-                          onTap: () => _pickDate(deadline: true),
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD6D6D6),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _PickerButton(
-                          icon: Icons.alarm_rounded,
-                          value: _timeLabel(_deadline),
-                          onTap: _pickTime,
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Create Task',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Priority',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _PriorityChoice(
-                          label: 'Low',
-                          active: _priority == TaskPriority.low,
-                          onTap: () =>
-                              setState(() => _priority = TaskPriority.low),
+                      const SizedBox(height: 16),
+                      _SheetField(
+                        label: 'Task Title',
+                        child: TextField(
+                          controller: _titleController,
+                          decoration: _inputDecoration('Project Assignment'),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _PriorityChoice(
-                          label: 'Medium',
-                          active: _priority == TaskPriority.medium,
-                          onTap: () =>
-                              setState(() => _priority = TaskPriority.medium),
+                      _SheetField(
+                        label: 'Description',
+                        child: TextField(
+                          controller: _descriptionController,
+                          minLines: 4,
+                          maxLines: 6,
+                          decoration: _inputDecoration(
+                            'Pbfbabwfboauwbfbabfobabfasbfubasofbasbuasbfuoabsfasoutbasbdfbasoutbasbfasbfoasobfas',
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _PriorityChoice(
-                          label: 'High',
-                          active: _priority == TaskPriority.high,
-                          onTap: () =>
-                              setState(() => _priority = TaskPriority.high),
+                      const Text(
+                        'Due Date & Time',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Task For',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ScopeChoice(
-                          label: 'Personal',
-                          active: _scope == TaskScope.personal,
-                          onTap: () => setState(() {
-                            _scope = TaskScope.personal;
-                            _selectedGroupId = null;
-                          }),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _ScopeChoice(
-                          label: 'Group',
-                          active: _scope == TaskScope.group,
-                          onTap: () => setState(() {
-                            _scope = TaskScope.group;
-                            _selectedGroupId ??= widget.groups.isNotEmpty
-                                ? widget.groups.first.id
-                                : null;
-                          }),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_scope == TaskScope.group) ...[
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedGroupId,
-                      decoration: _inputDecoration('Choose group'),
-                      items: widget.groups
-                          .map(
-                            (group) => DropdownMenuItem(
-                              value: group.id,
-                              child: Text(group.name),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _PickerButton(
+                              icon: Icons.calendar_today_outlined,
+                              value: _dateLabel(_deadline),
+                              onTap: () => _pickDate(deadline: true),
                             ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) =>
-                          setState(() => _selectedGroupId = value),
-                    ),
-                    const SizedBox(height: 8),
-                    _GroupMembersPreview(group: _selectedGroup),
-                  ],
-                  if (_error != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      _error!,
-                      style: const TextStyle(
-                        color: Color(0xFFFF5D5D),
-                        fontWeight: FontWeight.w700,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _PickerButton(
+                              icon: Icons.alarm_rounded,
+                              value: _timeLabel(_deadline),
+                              onTap: _pickTime,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _submitting ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF5D5D),
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Priority',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      child: _submitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _PriorityChoice(
+                              label: 'Low',
+                              active: _priority == TaskPriority.low,
+                              onTap: () =>
+                                  setState(() => _priority = TaskPriority.low),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _PriorityChoice(
+                              label: 'Medium',
+                              active: _priority == TaskPriority.medium,
+                              onTap: () => setState(
+                                () => _priority = TaskPriority.medium,
                               ),
-                            )
-                          : const Text(
-                              'Create Task',
-                              style: TextStyle(fontWeight: FontWeight.w800),
                             ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _PriorityChoice(
+                              label: 'High',
+                              active: _priority == TaskPriority.high,
+                              onTap: () =>
+                                  setState(() => _priority = TaskPriority.high),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Task For',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ScopeChoice(
+                              label: 'Personal',
+                              active: _scope == TaskScope.personal,
+                              onTap: () => setState(() {
+                                _scope = TaskScope.personal;
+                                _selectedGroupId = null;
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _ScopeChoice(
+                              label: 'Group',
+                              active: _scope == TaskScope.group,
+                              onTap: () => setState(() {
+                                _scope = TaskScope.group;
+                                _selectedGroupId ??= widget.groups.isNotEmpty
+                                    ? widget.groups.first.id
+                                    : null;
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_scope == TaskScope.group) ...[
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedGroupId,
+                          decoration: _inputDecoration('Choose group'),
+                          items: widget.groups
+                              .map(
+                                (group) => DropdownMenuItem(
+                                  value: group.id,
+                                  child: Text(group.name),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _selectedGroupId = value),
+                        ),
+                        const SizedBox(height: 8),
+                        _GroupMembersPreview(group: _selectedGroup),
+                      ],
+                      if (_error != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          _error!,
+                          style: const TextStyle(
+                            color: Color(0xFFFF5D5D),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _submitting ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF5D5D),
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: _submitting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Create Task',
+                                  style: TextStyle(fontWeight: FontWeight.w800),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: -8,
+                top: -8,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6B7A90),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x33000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 21,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -2340,12 +2527,8 @@ String _monthName(int month) {
   return months[month - 1];
 }
 
-GroupOption? _groupForTask(
-  TaskItem task,
-  Map<String, GroupOption> groupsById,
-) {
+GroupOption? _groupForTask(TaskItem task, Map<String, GroupOption> groupsById) {
   final groupId = task.groupId;
   if (groupId == null || groupId.isEmpty) return null;
   return groupsById[groupId];
 }
-

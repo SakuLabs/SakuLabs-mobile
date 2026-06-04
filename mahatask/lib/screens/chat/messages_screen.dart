@@ -489,7 +489,7 @@ class _ChatHeader extends StatelessWidget {
         _CircleAction(
           scale: scale,
           color: const Color(0xFFFF5D5D),
-          icon: Icons.call_made_rounded,
+          icon: Icons.phone_rounded,
           iconColor: Colors.white,
           onTap: onOpenCallLog,
         ),
