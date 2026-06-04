@@ -161,6 +161,15 @@ class _MessagesScreenState extends State<MessagesScreen>
     if (changed == true) await _load(silent: true);
   }
 
+  Future<void> _openCreateGroup() async {
+    final changed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.42),
+      builder: (_) => _CreateGroupDialog(friends: _friends),
+    );
+    if (changed == true) await _load(silent: true);
+  }
+
   void _openCallLog() {
     showDialog<void>(
       context: context,
@@ -185,6 +194,7 @@ class _MessagesScreenState extends State<MessagesScreen>
       query: _query,
       onReload: _load,
       onAddFriend: _openAddFriend,
+      onCreateGroup: _openCreateGroup,
       onOpenRequests: _openFriendRequests,
       onOpenCallLog: _openCallLog,
       onInviteFriends: _openInviteFriends,
@@ -194,7 +204,6 @@ class _MessagesScreenState extends State<MessagesScreen>
     if (widget.embedded) return body;
     return Scaffold(backgroundColor: const Color(0xFF1D1D1F), body: body);
   }
-
 }
 
 class _MessagesBody extends StatelessWidget {
@@ -211,6 +220,7 @@ class _MessagesBody extends StatelessWidget {
     required this.query,
     required this.onReload,
     required this.onAddFriend,
+    required this.onCreateGroup,
     required this.onOpenRequests,
     required this.onOpenCallLog,
     required this.onInviteFriends,
@@ -229,6 +239,7 @@ class _MessagesBody extends StatelessWidget {
   final String query;
   final VoidCallback onReload;
   final VoidCallback onAddFriend;
+  final VoidCallback onCreateGroup;
   final VoidCallback onOpenRequests;
   final VoidCallback onOpenCallLog;
   final ValueChanged<SocialGroup> onInviteFriends;
@@ -250,19 +261,20 @@ class _MessagesBody extends StatelessWidget {
         final filteredGroups = query.isEmpty
             ? groups
             : groups
-                .where((group) => group.name.toLowerCase().contains(query))
-                .toList(growable: false);
+                  .where((group) => group.name.toLowerCase().contains(query))
+                  .toList(growable: false);
         final filteredFriends = query.isEmpty
             ? friends
             : friends
-                .where(
-                  (friend) =>
-                      friend.name.toLowerCase().contains(query) ||
-                      (friend.userCode ?? '').toLowerCase().contains(query),
-                )
-                .toList(growable: false);
-        final visibleItems =
-            tab == _MessageTab.group ? filteredGroups : filteredFriends;
+                  .where(
+                    (friend) =>
+                        friend.name.toLowerCase().contains(query) ||
+                        (friend.userCode ?? '').toLowerCase().contains(query),
+                  )
+                  .toList(growable: false);
+        final visibleItems = tab == _MessageTab.group
+            ? filteredGroups
+            : filteredFriends;
 
         return Container(
           width: double.infinity,
@@ -290,7 +302,12 @@ class _MessagesBody extends StatelessWidget {
                   scale: scale,
                   displayName: displayName,
                   requestCount: friendRequests.length + groupInvites.length,
-                  onAddFriend: onAddFriend,
+                  primaryIcon: tab == _MessageTab.group
+                      ? Icons.add_rounded
+                      : Icons.person_add_alt_1_rounded,
+                  onPrimaryAction: tab == _MessageTab.group
+                      ? onCreateGroup
+                      : onAddFriend,
                   onOpenRequests: onOpenRequests,
                   onOpenCallLog: onOpenCallLog,
                 ),
@@ -329,6 +346,9 @@ class _MessagesBody extends StatelessWidget {
                   _EmptyChatList(
                     scale: scale,
                     isGroup: tab == _MessageTab.group,
+                    onCreateGroup: tab == _MessageTab.group
+                        ? onCreateGroup
+                        : null,
                   )
                 else if (tab == _MessageTab.group)
                   ...filteredGroups.map((group) {
@@ -389,7 +409,8 @@ class _MessagesBody extends StatelessWidget {
                         ).then((_) => onReload());
                       },
                     );
-                  }),              ],
+                  }),
+              ],
             ),
           ),
         );
@@ -403,7 +424,8 @@ class _ChatHeader extends StatelessWidget {
     required this.scale,
     required this.displayName,
     required this.requestCount,
-    required this.onAddFriend,
+    required this.primaryIcon,
+    required this.onPrimaryAction,
     required this.onOpenRequests,
     required this.onOpenCallLog,
   });
@@ -411,7 +433,8 @@ class _ChatHeader extends StatelessWidget {
   final _ChatScale scale;
   final String displayName;
   final int requestCount;
-  final VoidCallback onAddFriend;
+  final IconData primaryIcon;
+  final VoidCallback onPrimaryAction;
   final VoidCallback onOpenRequests;
   final VoidCallback onOpenCallLog;
 
@@ -449,9 +472,9 @@ class _ChatHeader extends StatelessWidget {
         _CircleAction(
           scale: scale,
           color: Colors.black,
-          icon: Icons.person_add_alt_1_rounded,
+          icon: primaryIcon,
           iconColor: Colors.white,
-          onTap: onAddFriend,
+          onTap: onPrimaryAction,
         ),
         SizedBox(width: scale.x(9)),
         _CircleAction(
@@ -608,134 +631,107 @@ class _ConversationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: scale.h(12)),
+      padding: EdgeInsets.only(bottom: scale.h(18)),
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.fromLTRB(
-            scale.x(13),
-            scale.h(12),
-            scale.x(11),
-            scale.h(12),
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.95),
-            borderRadius: BorderRadius.circular(scale.radius(18)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x18000000),
-                blurRadius: 10,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  _ConversationAvatar(
-                    scale: scale,
-                    accent: accent,
-                    icon: icon,
-                    avatarUrl: avatarUrl,
-                    title: title,
-                  ),
-                  SizedBox(width: scale.x(11)),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: scale.font(15),
-                                  fontWeight: FontWeight.w900,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: scale.x(2)),
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _ConversationAvatar(
+                      scale: scale,
+                      accent: accent,
+                      icon: icon,
+                      avatarUrl: avatarUrl,
+                      title: title,
+                    ),
+                    SizedBox(width: scale.x(11)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: scale.font(15),
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
+                              if (pinnedTaskCount > 0) ...[
+                                SizedBox(width: scale.x(5)),
+                                _TaskPinBadge(
+                                  scale: scale,
+                                  count: pinnedTaskCount,
+                                  onTap: onTaskTap,
+                                ),
+                              ],
+                              if (onInviteTap != null) ...[
+                                SizedBox(width: scale.x(5)),
+                                _MiniInviteButton(
+                                  scale: scale,
+                                  onTap: onInviteTap!,
+                                ),
+                              ],
+                            ],
+                          ),
+                          SizedBox(height: scale.h(3)),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: const Color(0xFF7A7A7A),
+                              fontSize: scale.font(10),
+                              fontWeight: FontWeight.w600,
                             ),
-                            if (pinnedTaskCount > 0) ...[
-                              SizedBox(width: scale.x(5)),
-                              _TaskPinBadge(
-                                scale: scale,
-                                count: pinnedTaskCount,
-                                onTap: onTaskTap,
-                              ),
-                            ],
-                            if (onInviteTap != null) ...[
-                              SizedBox(width: scale.x(5)),
-                              _MiniInviteButton(
-                                scale: scale,
-                                onTap: onInviteTap!,
-                              ),
-                            ],
-                          ],
-                        ),
-                        SizedBox(height: scale.h(3)),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: const Color(0xFF7A7A7A),
-                            fontSize: scale.font(10),
-                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (unread > 0)
-                    Container(
-                      constraints: BoxConstraints(minWidth: scale.w(23)),
-                      height: scale.w(23),
-                      margin: EdgeInsets.only(left: scale.x(8)),
-                      decoration: BoxDecoration(
-                        color: accent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          unread > 99 ? '99+' : '$unread',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: scale.font(9),
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: scale.w(27),
-                      height: scale.w(27),
-                      margin: EdgeInsets.only(left: scale.x(8)),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE9E9E9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.arrow_outward_rounded,
-                        color: const Color(0xFF8A8A8A),
-                        size: scale.w(18),
+                        ],
                       ),
                     ),
-                ],
-              ),
-              if (taskPreview != null) ...[
-                SizedBox(height: scale.h(10)),
-                GestureDetector(
-                  onTap: onTaskTap,
-                  child: _GroupTaskPreview(scale: scale, task: taskPreview!),
+                    if (unread > 0)
+                      Container(
+                        constraints: BoxConstraints(minWidth: scale.w(23)),
+                        height: scale.w(23),
+                        margin: EdgeInsets.only(left: scale.x(8)),
+                        decoration: BoxDecoration(
+                          color: accent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            unread > 99 ? '99+' : '$unread',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: scale.font(9),
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (onInviteTap == null)
+                      SizedBox(width: scale.w(23)),
+                  ],
                 ),
+                if (taskPreview != null) ...[
+                  SizedBox(height: scale.h(10)),
+                  GestureDetector(
+                    onTap: onTaskTap,
+                    child: _GroupTaskPreview(scale: scale, task: taskPreview!),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -1045,7 +1041,9 @@ class _GroupTaskSheet extends StatelessWidget {
                       children: [
                         _MiniStatusPill(label: _taskStatusLabel(task.status)),
                         _MiniStatusPill(label: _priorityLabel(task.priority)),
-                        ...group.members.take(3).map(
+                        ...group.members
+                            .take(3)
+                            .map(
                               (member) => _MiniStatusPill(label: member.name),
                             ),
                       ],
@@ -1103,7 +1101,8 @@ class _NotificationRequestDialog extends StatefulWidget {
       _NotificationRequestDialogState();
 }
 
-class _NotificationRequestDialogState extends State<_NotificationRequestDialog> {
+class _NotificationRequestDialogState
+    extends State<_NotificationRequestDialog> {
   final SocialService _socialService = SocialService();
   late List<dynamic> _friendRequests = widget.friendRequests;
   late List<dynamic> _groupInvites = widget.groupInvites;
@@ -1188,9 +1187,8 @@ class _NotificationRequestDialogState extends State<_NotificationRequestDialog> 
                   ),
                 ),
               )
-            else
-              ...[
-                ..._friendRequests.map((request) {
+            else ...[
+              ..._friendRequests.map((request) {
                 final id = _requestId(request);
                 final name = _requestSenderName(request);
                 return _RequestRow(
@@ -1400,6 +1398,186 @@ class _ChatError extends StatelessWidget {
   }
 }
 
+class _InviteSettings {
+  const _InviteSettings({this.role = 'MEMBER', this.canCreateSchedule = false});
+
+  final String role;
+  final bool canCreateSchedule;
+
+  _InviteSettings copyWith({String? role, bool? canCreateSchedule}) {
+    return _InviteSettings(
+      role: role ?? this.role,
+      canCreateSchedule: canCreateSchedule ?? this.canCreateSchedule,
+    );
+  }
+}
+
+class _FriendSearchField extends StatelessWidget {
+  const _FriendSearchField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w800),
+      decoration: InputDecoration(
+        hintText: 'Search friend name',
+        hintStyle: const TextStyle(
+          color: Color(0xFF64748B),
+          fontWeight: FontWeight.w700,
+        ),
+        prefixIcon: const Icon(Icons.search_rounded, color: Colors.black54),
+        filled: true,
+        fillColor: const Color(0xFFEAF0F6),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteFriendTile extends StatelessWidget {
+  const _InviteFriendTile({
+    required this.friend,
+    required this.settings,
+    required this.onChanged,
+  });
+
+  final SocialUser friend;
+  final _InviteSettings? settings;
+  final ValueChanged<_InviteSettings?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = settings != null;
+    final current = settings ?? const _InviteSettings();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFEAF7FB) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: selected ? const Color(0xFF2386A2) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Checkbox(
+                value: selected,
+                activeColor: const Color(0xFF2386A2),
+                onChanged: (value) {
+                  onChanged(value == true ? current : null);
+                },
+              ),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFD7D7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.person_rounded, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      friend.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (friend.userCode?.isNotEmpty == true)
+                      Text(
+                        friend.userCode!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (selected) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: current.role,
+                    isDense: true,
+                    decoration: InputDecoration(
+                      labelText: 'Role',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(13),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'MEMBER', child: Text('Member')),
+                      DropdownMenuItem(
+                        value: 'MODERATOR',
+                        child: Text('Moderator'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      onChanged(current.copyWith(role: value));
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SwitchListTile(
+                    value: current.canCreateSchedule,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text(
+                      'Schedule',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    activeThumbColor: const Color(0xFF2386A2),
+                    onChanged: (value) {
+                      onChanged(current.copyWith(canCreateSchedule: value));
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _GroupInviteDialog extends StatefulWidget {
   const _GroupInviteDialog({required this.group, required this.friends});
 
@@ -1412,13 +1590,37 @@ class _GroupInviteDialog extends StatefulWidget {
 
 class _GroupInviteDialogState extends State<_GroupInviteDialog> {
   final SocialService _socialService = SocialService();
-  final Set<String> _selected = <String>{};
+  final TextEditingController _searchController = TextEditingController();
+  final Map<String, _InviteSettings> _selected = <String, _InviteSettings>{};
+  String _query = '';
   bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _query = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   List<SocialUser> get _candidates {
     final memberIds = widget.group.members.map((member) => member.id).toSet();
-    return widget.friends
+    final candidates = widget.friends
         .where((friend) => !memberIds.contains(friend.id))
+        .toList(growable: false);
+    if (_query.isEmpty) return candidates;
+    return candidates
+        .where(
+          (friend) =>
+              friend.name.toLowerCase().contains(_query) ||
+              (friend.userCode ?? '').toLowerCase().contains(_query),
+        )
         .toList(growable: false);
   }
 
@@ -1426,17 +1628,19 @@ class _GroupInviteDialogState extends State<_GroupInviteDialog> {
     if (_selected.isEmpty || _sending) return;
     setState(() => _sending = true);
     try {
-      for (final userId in _selected) {
+      for (final entry in _selected.entries) {
         await _socialService.inviteToGroup(
           groupId: widget.group.id,
-          userId: userId,
+          userId: entry.key,
+          role: entry.value.role,
+          canCreateSchedule: entry.value.canCreateSchedule,
         );
       }
       if (!mounted) return;
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Group invite sent.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Group invite sent.')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1494,82 +1698,30 @@ class _GroupInviteDialogState extends State<_GroupInviteDialog> {
                 ),
               )
             else
+              _FriendSearchField(controller: _searchController),
+            if (candidates.isNotEmpty) const SizedBox(height: 10),
+            if (candidates.isNotEmpty)
               ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 320),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: candidates.map((friend) {
-                      final selected = _selected.contains(friend.id);
-                      return InkWell(
-                        onTap: () {
-                          setState(() {
-                            if (selected) {
-                              _selected.remove(friend.id);
-                            } else {
-                              _selected.add(friend.id);
-                            }
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 9),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? const Color(0xFFEAF7FB)
-                                : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: selected
-                                  ? const Color(0xFF2386A2)
-                                  : const Color(0xFFE2E8F0),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 34,
-                                height: 34,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFFD7D7),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.person_rounded,
-                                  size: 18,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  friend.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                              Checkbox(
-                                value: selected,
-                                activeColor: const Color(0xFF2386A2),
-                                onChanged: (_) {
-                                  setState(() {
-                                    if (selected) {
-                                      _selected.remove(friend.id);
-                                    } else {
-                                      _selected.add(friend.id);
-                                    }
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                constraints: const BoxConstraints(maxHeight: 246),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: candidates.length,
+                  itemBuilder: (context, index) {
+                    final friend = candidates[index];
+                    return _InviteFriendTile(
+                      friend: friend,
+                      settings: _selected[friend.id],
+                      onChanged: (settings) {
+                        setState(() {
+                          if (settings == null) {
+                            _selected.remove(friend.id);
+                          } else {
+                            _selected[friend.id] = settings;
+                          }
+                        });
+                      },
+                    );
+                  },
                 ),
               ),
             const SizedBox(height: 12),
@@ -1577,8 +1729,7 @@ class _GroupInviteDialogState extends State<_GroupInviteDialog> {
               width: double.infinity,
               height: 46,
               child: ElevatedButton(
-                onPressed:
-                    _selected.isEmpty || _sending ? null : _sendInvites,
+                onPressed: _selected.isEmpty || _sending ? null : _sendInvites,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
@@ -1600,30 +1751,267 @@ class _GroupInviteDialogState extends State<_GroupInviteDialog> {
   }
 }
 
-class _EmptyChatList extends StatelessWidget {
-  const _EmptyChatList({required this.scale, required this.isGroup});
+class _CreateGroupDialog extends StatefulWidget {
+  const _CreateGroupDialog({required this.friends});
 
-  final _ChatScale scale;
-  final bool isGroup;
+  final List<SocialUser> friends;
+
+  @override
+  State<_CreateGroupDialog> createState() => _CreateGroupDialogState();
+}
+
+class _CreateGroupDialogState extends State<_CreateGroupDialog> {
+  final SocialService _socialService = SocialService();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  final Map<String, _InviteSettings> _selected = <String, _InviteSettings>{};
+  String _query = '';
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _query = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<SocialUser> get _filteredFriends {
+    if (_query.isEmpty) return widget.friends;
+    return widget.friends
+        .where(
+          (friend) =>
+              friend.name.toLowerCase().contains(_query) ||
+              (friend.userCode ?? '').toLowerCase().contains(_query),
+        )
+        .toList(growable: false);
+  }
+
+  Future<void> _create() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty || _saving) return;
+    setState(() => _saving = true);
+    try {
+      final group = await _socialService.createGroup(name);
+      for (final entry in _selected.entries) {
+        await _socialService.inviteToGroup(
+          groupId: group.id,
+          userId: entry.key,
+          role: entry.value.role,
+          canCreateSchedule: entry.value.canCreateSchedule,
+        );
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Group created.')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: scale.h(130),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(scale.radius(18)),
-      ),
-      child: Center(
-        child: Text(
-          isGroup ? 'No group chats yet.' : 'No friends yet.',
-          style: TextStyle(
-            color: const Color(0xFF5E7A83),
-            fontSize: scale.font(13),
-            fontWeight: FontWeight.w800,
-          ),
+    final filteredFriends = _filteredFriends;
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Create Group',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _nameController,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _create(),
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w800,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Group name',
+                hintStyle: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w700,
+                ),
+                filled: true,
+                fillColor: const Color(0xFFEAF0F6),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Invite friends',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (widget.friends.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Add friends first to invite them.',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            else
+              _FriendSearchField(controller: _searchController),
+            if (widget.friends.isNotEmpty) const SizedBox(height: 10),
+            if (widget.friends.isNotEmpty)
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 246),
+                child: filteredFriends.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(18),
+                          child: Text(
+                            'No friends found.',
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filteredFriends.length,
+                        itemBuilder: (context, index) {
+                          final friend = filteredFriends[index];
+                          return _InviteFriendTile(
+                            friend: friend,
+                            settings: _selected[friend.id],
+                            onChanged: (settings) {
+                              setState(() {
+                                if (settings == null) {
+                                  _selected.remove(friend.id);
+                                } else {
+                                  _selected[friend.id] = settings;
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+              ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: _saving ? null : _create,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(_saving ? 'Creating...' : 'Create Group'),
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyChatList extends StatelessWidget {
+  const _EmptyChatList({
+    required this.scale,
+    required this.isGroup,
+    required this.onCreateGroup,
+  });
+
+  final _ChatScale scale;
+  final bool isGroup;
+  final VoidCallback? onCreateGroup;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: scale.h(150),
+      child: Center(
+        child: isGroup
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'No group chats yet.',
+                    style: TextStyle(
+                      color: const Color(0xFF5E7A83),
+                      fontSize: scale.font(13),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: scale.h(12)),
+                  ElevatedButton(
+                    onPressed: onCreateGroup,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(scale.radius(18)),
+                      ),
+                    ),
+                    child: const Text('Create Group'),
+                  ),
+                ],
+              )
+            : Text(
+                'No friends yet.',
+                style: TextStyle(
+                  color: const Color(0xFF5E7A83),
+                  fontSize: scale.font(13),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
       ),
     );
   }
@@ -1800,5 +2188,3 @@ void _openGroupTasks(
     builder: (_) => _GroupTaskSheet(group: group, tasks: tasks),
   );
 }
-
-

@@ -76,6 +76,21 @@ class SocialService {
         .toList(growable: false);
   }
 
+  Future<SocialGroup> createGroup(String name) async {
+    final normalized = name.trim();
+    if (normalized.isEmpty) {
+      throw Exception('Nama grup harus diisi.');
+    }
+    final data = await _client.post(
+      '/social/groups',
+      body: <String, dynamic>{'name': normalized},
+    );
+    if (data is Map<String, dynamic>) {
+      return SocialGroup.fromJson(data);
+    }
+    throw Exception('Grup gagal dibuat.');
+  }
+
   Future<void> addFriendByCode(String code) async {
     final normalized = code.trim().toUpperCase();
     if (normalized.isEmpty) {
@@ -122,10 +137,16 @@ class SocialService {
   Future<void> inviteToGroup({
     required String groupId,
     required String userId,
+    String role = 'MEMBER',
+    bool canCreateSchedule = false,
   }) async {
     await _client.post(
       '/social/groups/$groupId/invites',
-      body: <String, dynamic>{'userId': userId},
+      body: <String, dynamic>{
+        'userId': userId,
+        'role': role == 'MODERATOR' ? 'MODERATOR' : 'MEMBER',
+        'canCreateSchedule': canCreateSchedule,
+      },
     );
   }
 
