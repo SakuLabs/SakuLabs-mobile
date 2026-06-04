@@ -96,7 +96,7 @@ class LandingPageOneScreen extends StatelessWidget {
                     ),
                     TextSpan(
                       text:
-                          ' combines task management, smart scheduling, and study groups into one cohesive platform tailored for students.',
+                          ' combines task management, smart scheduling, and study groups.',
                     ),
                   ],
                 ),

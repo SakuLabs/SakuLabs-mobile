@@ -109,6 +109,7 @@ class _MessagesScreenState extends State<MessagesScreen>
   Future<void> _handleSocialRealtime(RealtimeEvent event) async {
     if (!mounted) return;
     if (event.type == 'disconnect' || event.type == 'presence:update') return;
+    _applySocialRealtime(event);
     await _load(silent: true);
     if (!mounted) return;
 
@@ -129,6 +130,68 @@ class _MessagesScreenState extends State<MessagesScreen>
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  void _applySocialRealtime(RealtimeEvent event) {
+    final payload = _asMap(event.payload);
+    if (payload == null) return;
+
+    setState(() {
+      switch (event.type) {
+        case 'friendRequest':
+          final request = _asMap(payload['request']);
+          if (request != null) {
+            _friendRequests = _upsertRawItem(_friendRequests, request);
+          }
+        case 'friendRequestAccepted':
+          _friendRequests = _removeRawItem(
+            _friendRequests,
+            payload['requestId'],
+          );
+          final friend = _asMap(payload['friend']);
+          if (friend != null) _upsertFriend(SocialUser.fromJson(friend));
+        case 'friendRequestRejected':
+          _friendRequests = _removeRawItem(
+            _friendRequests,
+            payload['requestId'],
+          );
+        case 'groupInvite':
+          final invite = _asMap(payload['invite']);
+          if (invite != null) {
+            _groupInvites = _upsertRawItem(_groupInvites, invite);
+          }
+        case 'groupInviteAccepted':
+          _groupInvites = _removeRawItem(_groupInvites, payload['inviteId']);
+          final group = _asMap(payload['group']);
+          if (group != null) _upsertGroup(SocialGroup.fromJson(group));
+        case 'groupInviteRejected':
+          _groupInvites = _removeRawItem(_groupInvites, payload['inviteId']);
+      }
+    });
+  }
+
+  void _upsertFriend(SocialUser friend) {
+    if (friend.id.isEmpty) return;
+    final next = List<SocialUser>.from(_friends);
+    final index = next.indexWhere((item) => item.id == friend.id);
+    if (index == -1) {
+      next.insert(0, friend);
+    } else {
+      next[index] = friend;
+    }
+    _friends = next;
+  }
+
+  void _upsertGroup(SocialGroup group) {
+    if (group.id.isEmpty) return;
+    final next = List<SocialGroup>.from(_groups);
+    final index = next.indexWhere((item) => item.id == group.id);
+    if (index == -1) {
+      next.insert(0, group);
+    } else {
+      next[index] = group;
+    }
+    _groups = next;
   }
 
   Future<void> _openAddFriend() async {
@@ -2250,25 +2313,28 @@ String _priorityLabel(String priority) {
 }
 
 String _requestId(dynamic request) {
-  if (request is Map<String, dynamic>) return (request['id'] ?? '').toString();
+  final data = _asMap(request);
+  if (data != null) return (data['id'] ?? '').toString();
   return '';
 }
 
 String _requestSenderName(dynamic request) {
-  if (request is Map<String, dynamic>) {
-    final sender = request['sender'];
-    if (sender is Map<String, dynamic>) {
+  final data = _asMap(request);
+  if (data != null) {
+    final sender = _asMap(data['sender']);
+    if (sender != null) {
       return (sender['name'] ?? 'Unknown user').toString();
     }
-    return (request['senderName'] ?? 'Unknown user').toString();
+    return (data['senderName'] ?? 'Unknown user').toString();
   }
   return 'Unknown user';
 }
 
 String _groupInviteTitle(dynamic invite) {
-  if (invite is Map<String, dynamic>) {
-    final group = invite['group'];
-    if (group is Map<String, dynamic>) {
+  final data = _asMap(invite);
+  if (data != null) {
+    final group = _asMap(data['group']);
+    if (group != null) {
       return (group['name'] ?? 'Group invite').toString();
     }
   }
@@ -2276,13 +2342,43 @@ String _groupInviteTitle(dynamic invite) {
 }
 
 String _groupInviteSubtitle(dynamic invite) {
-  if (invite is Map<String, dynamic>) {
-    final inviter = invite['inviter'];
-    if (inviter is Map<String, dynamic>) {
+  final data = _asMap(invite);
+  if (data != null) {
+    final inviter = _asMap(data['inviter']);
+    if (inviter != null) {
       return 'invited by ${(inviter['name'] ?? 'a friend').toString()}';
     }
   }
   return 'invited you to join';
+}
+
+Map<String, dynamic>? _asMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, data) => MapEntry(key.toString(), data));
+  }
+  return null;
+}
+
+List<dynamic> _upsertRawItem(List<dynamic> items, Map<String, dynamic> item) {
+  final id = (item['id'] ?? '').toString();
+  if (id.isEmpty) return items;
+  final next = List<dynamic>.from(items);
+  final index = next.indexWhere((value) => _requestId(value) == id);
+  if (index == -1) {
+    next.insert(0, item);
+  } else {
+    next[index] = item;
+  }
+  return next;
+}
+
+List<dynamic> _removeRawItem(List<dynamic> items, dynamic id) {
+  final normalized = (id ?? '').toString();
+  if (normalized.isEmpty) return items;
+  return items
+      .where((value) => _requestId(value) != normalized)
+      .toList(growable: false);
 }
 
 void _openGroupTasks(
