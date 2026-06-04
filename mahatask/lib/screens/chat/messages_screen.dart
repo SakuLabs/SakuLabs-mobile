@@ -1122,6 +1122,7 @@ class _NotificationRequestDialogState
             .where((item) => _requestId(item) != id)
             .toList();
       });
+      Navigator.pop(context, true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1141,6 +1142,7 @@ class _NotificationRequestDialogState
             .where((item) => _requestId(item) != id)
             .toList();
       });
+      Navigator.pop(context, true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1521,58 +1523,156 @@ class _InviteFriendTile extends StatelessWidget {
           ),
           if (selected) ...[
             const SizedBox(height: 8),
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: current.role,
-                    isDense: true,
-                    decoration: InputDecoration(
-                      labelText: 'Role',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(13),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'MEMBER', child: Text('Member')),
-                      DropdownMenuItem(
-                        value: 'MODERATOR',
-                        child: Text('Moderator'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      onChanged(current.copyWith(role: value));
-                    },
+                const Text(
+                  'Role',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SwitchListTile(
-                    value: current.canCreateSchedule,
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text(
-                      'Schedule',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _InviteRoleChip(
+                        label: 'Member',
+                        active: current.role == 'MEMBER',
+                        onTap: () =>
+                            onChanged(current.copyWith(role: 'MEMBER')),
                       ),
                     ),
-                    activeThumbColor: const Color(0xFF2386A2),
-                    onChanged: (value) {
-                      onChanged(current.copyWith(canCreateSchedule: value));
-                    },
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _InviteRoleChip(
+                        label: 'Mod',
+                        active: current.role == 'MODERATOR',
+                        onTap: () =>
+                            onChanged(current.copyWith(role: 'MODERATOR')),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () => onChanged(
+                    current.copyWith(
+                      canCreateSchedule: !current.canCreateSchedule,
+                    ),
+                  ),
+                  borderRadius: BorderRadius.circular(13),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          current.canCreateSchedule
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: current.canCreateSchedule
+                              ? const Color(0xFF2386A2)
+                              : const Color(0xFF64748B),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Can create schedule',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _InviteRoleChip extends StatelessWidget {
+  const _InviteRoleChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 34,
+        decoration: BoxDecoration(
+          color: active ? Colors.black : const Color(0xFFEAF0F6),
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.black,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteEmptyState extends StatelessWidget {
+  const _InviteEmptyState({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFD28A)),
+      ),
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }
@@ -1702,27 +1802,32 @@ class _GroupInviteDialogState extends State<_GroupInviteDialog> {
             if (candidates.isNotEmpty) const SizedBox(height: 10),
             if (candidates.isNotEmpty)
               ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 246),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: candidates.length,
-                  itemBuilder: (context, index) {
-                    final friend = candidates[index];
-                    return _InviteFriendTile(
-                      friend: friend,
-                      settings: _selected[friend.id],
-                      onChanged: (settings) {
-                        setState(() {
-                          if (settings == null) {
-                            _selected.remove(friend.id);
-                          } else {
-                            _selected[friend.id] = settings;
-                          }
-                        });
-                      },
-                    );
-                  },
+                constraints: const BoxConstraints(
+                  minHeight: 96,
+                  maxHeight: 246,
                 ),
+                child: candidates.isEmpty
+                    ? const _InviteEmptyState(text: 'No friends found.')
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: candidates.length,
+                        itemBuilder: (context, index) {
+                          final friend = candidates[index];
+                          return _InviteFriendTile(
+                            friend: friend,
+                            settings: _selected[friend.id],
+                            onChanged: (settings) {
+                              setState(() {
+                                if (settings == null) {
+                                  _selected.remove(friend.id);
+                                } else {
+                                  _selected[friend.id] = settings;
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
               ),
             const SizedBox(height: 12),
             SizedBox(
@@ -1828,95 +1933,82 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
   @override
   Widget build(BuildContext context) {
     final filteredFriends = _filteredFriends;
+    final height = MediaQuery.sizeOf(context).height;
     return Dialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Create Group',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: height * 0.82),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Create Group',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _nameController,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _create(),
-              style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w800,
+                  IconButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
               ),
-              decoration: InputDecoration(
-                hintText: 'Group name',
-                hintStyle: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w700,
+              const SizedBox(height: 8),
+              TextField(
+                controller: _nameController,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _create(),
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w800,
                 ),
-                filled: true,
-                fillColor: const Color(0xFFEAF0F6),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Invite friends',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (widget.friends.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Add friends first to invite them.',
-                  style: TextStyle(
+                decoration: InputDecoration(
+                  hintText: 'Group name',
+                  hintStyle: const TextStyle(
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w700,
                   ),
+                  filled: true,
+                  fillColor: const Color(0xFFEAF0F6),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
-              )
-            else
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Invite friends',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
               _FriendSearchField(controller: _searchController),
-            if (widget.friends.isNotEmpty) const SizedBox(height: 10),
-            if (widget.friends.isNotEmpty)
+              const SizedBox(height: 10),
               ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 246),
-                child: filteredFriends.isEmpty
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(18),
-                          child: Text(
-                            'No friends found.',
-                            style: TextStyle(
-                              color: Color(0xFF64748B),
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
+                constraints: const BoxConstraints(
+                  minHeight: 96,
+                  maxHeight: 246,
+                ),
+                child: widget.friends.isEmpty
+                    ? const _InviteEmptyState(
+                        text:
+                            'Belum ada teman. Tambahkan friend dulu dari tombol Add Friend.',
                       )
+                    : filteredFriends.isEmpty
+                    ? const _InviteEmptyState(text: 'No friends found.')
                     : ListView.builder(
                         shrinkWrap: true,
                         itemCount: filteredFriends.length,
@@ -1938,23 +2030,24 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                         },
                       ),
               ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _create,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _create,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
+                  child: Text(_saving ? 'Creating...' : 'Create Group'),
                 ),
-                child: Text(_saving ? 'Creating...' : 'Create Group'),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

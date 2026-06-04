@@ -790,12 +790,29 @@ class _SortChip extends StatelessWidget {
     return PopupMenuButton<_TaskSort>(
       onSelected: onSelect,
       tooltip: 'Sort tasks',
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: _TaskSort.time, child: Text('By time')),
-        PopupMenuItem(value: _TaskSort.recommended, child: Text('Best queue')),
+      color: Colors.white,
+      elevation: 12,
+      offset: Offset(0, scale.h(38)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(scale.radius(16)),
+      ),
+      itemBuilder: (context) => [
+        _sortMenuItem(
+          value: _TaskSort.time,
+          label: 'By time',
+          icon: Icons.schedule_rounded,
+          selected: sort == _TaskSort.time,
+        ),
+        _sortMenuItem(
+          value: _TaskSort.recommended,
+          label: 'Best queue',
+          icon: Icons.auto_awesome_rounded,
+          selected: sort == _TaskSort.recommended,
+        ),
       ],
       child: Container(
         height: scale.h(32),
+        padding: EdgeInsets.symmetric(horizontal: scale.x(10)),
         decoration: BoxDecoration(
           color: active ? const Color(0xFF111827) : Colors.white,
           borderRadius: BorderRadius.circular(scale.radius(18)),
@@ -807,17 +824,70 @@ class _SortChip extends StatelessWidget {
             ),
           ],
         ),
-        child: Center(
-          child: Text(
-            'Sort',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              active ? Icons.auto_awesome_rounded : Icons.schedule_rounded,
               color: active ? Colors.white : Colors.black,
-              fontSize: scale.font(10.5),
-              fontWeight: FontWeight.w900,
+              size: scale.w(13),
             ),
-          ),
+            SizedBox(width: scale.x(5)),
+            Flexible(
+              child: Text(
+                active ? 'Best' : 'Time',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: active ? Colors.white : Colors.black,
+                  fontSize: scale.font(10.5),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<_TaskSort> _sortMenuItem({
+    required _TaskSort value,
+    required String label,
+    required IconData icon,
+    required bool selected,
+  }) {
+    return PopupMenuItem<_TaskSort>(
+      value: value,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFEAF7FB) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.black, size: 17),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF2386A2),
+                size: 16,
+              ),
+          ],
         ),
       ),
     );
@@ -2028,20 +2098,57 @@ class _CreateTaskSheetState extends State<_CreateTaskSheet> {
                       ),
                       if (_scope == TaskScope.group) ...[
                         const SizedBox(height: 10),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedGroupId,
-                          decoration: _inputDecoration('Choose group'),
-                          items: widget.groups
-                              .map(
-                                (group) => DropdownMenuItem(
-                                  value: group.id,
-                                  child: Text(group.name),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) =>
-                              setState(() => _selectedGroupId = value),
-                        ),
+                        if (widget.groups.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 11,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF7E8),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFFFD28A),
+                              ),
+                            ),
+                            child: const Text(
+                              'Belum ada group. Buat group dulu di Messages > Groups.',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          )
+                        else
+                          DropdownButtonFormField<String>(
+                            initialValue: _selectedGroupId,
+                            dropdownColor: Colors.white,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            iconEnabledColor: Colors.black,
+                            decoration: _inputDecoration('Choose group'),
+                            items: widget.groups
+                                .map(
+                                  (group) => DropdownMenuItem(
+                                    value: group.id,
+                                    child: Text(
+                                      group.name,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) =>
+                                setState(() => _selectedGroupId = value),
+                          ),
                         const SizedBox(height: 8),
                         _GroupMembersPreview(group: _selectedGroup),
                       ],
